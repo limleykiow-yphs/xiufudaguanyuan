@@ -1,0 +1,1505 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>梦回大观园｜教师管理中心</title>
+<link rel="stylesheet" href="style.css">
+<style>
+:root{--red:#8d3d31;--gold:#c79545;--paper:#fffaf0;--line:#dcc39c;--ink:#3e2d27}
+body{background:#eee4d4}
+.admin-shell{max-width:1500px;margin:auto;padding:16px}
+.admin-header{background:linear-gradient(135deg,#8d3d31,#ad654d);color:#fff;border-radius:18px;padding:18px 22px;
+display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;box-shadow:0 10px 28px #6f382533}
+.admin-header h1{color:#fff;margin:0}.admin-header p{margin:5px 0 0;color:#fff4dc}
+.header-actions{display:flex;gap:8px;flex-wrap:wrap}
+.nav{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+.nav button{border:1px solid #c49e68;background:#fff8e8;color:#704433;border-radius:10px;padding:9px 13px;font-weight:bold;cursor:pointer}
+.nav button.active{background:var(--red);color:#fff;border-color:var(--red)}
+.panel-page{display:none}.panel-page.active{display:block}
+.section-card{background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.section-card h2,.section-card h3{margin-top:0}
+.kpis{display:grid;grid-template-columns:repeat(8,1fr);gap:10px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;text-align:center}
+.kpi b{display:block;color:var(--red);font-size:27px;margin-top:4px}
+.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.quick{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;text-align:left}
+.quick strong{display:block;font-size:18px;color:var(--red);margin-bottom:4px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.form-grid label,.stack label{display:block;font-weight:bold}
+input,select,textarea{width:100%;padding:9px;border:1px solid #cdb48d;border-radius:9px;background:#fff}
+textarea{resize:vertical}.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+.map-editor canvas{width:100%;height:auto;border-radius:14px;border:2px solid var(--line);background:#eee}
+.question-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin:10px 0}
+.question-card .q-head{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.search-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px}
+.results{max-height:540px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+.result{padding:10px;border-bottom:1px solid #eee0c9;cursor:pointer}.result:hover{background:#fff2d6}
+.badge{display:inline-block;border-radius:999px;background:#f0dfbf;padding:3px 8px;font-size:12px;margin:2px}
+.table-wrap{overflow:auto}table{min-width:800px}.status{background:#fff0ce;border-radius:10px;padding:11px;margin:10px 0}
+.good{background:#e0f1dd}.warn{background:#fff0ce}.bad{background:#f4dddd}
+.test-answer{display:block;width:100%;text-align:left;margin:7px 0;padding:11px;border:2px solid #d8bd94;border-radius:10px;background:#fff}
+.test-answer.correct{background:#dff2dd}.test-answer.wrong{background:#f5dddd}
+.data-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.data-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:15px}
+small.help{display:block;color:#765e50;margin-top:4px}
+@media(max-width:1050px){.kpis{grid-template-columns:repeat(3,1fr)}.quick-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){.kpis,.quick-grid,.two-col,.three-col,.data-grid,.form-grid,.search-row{grid-template-columns:1fr}.admin-shell{padding:8px}}
+
+.question-sheet-wrap{overflow:auto;max-height:610px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.question-sheet{border-collapse:separate;border-spacing:0;min-width:1500px;width:100%;font-size:13px}
+.question-sheet th{position:sticky;top:0;z-index:3;background:#8d3d31;color:#fff;padding:8px;border-right:1px solid #ad6f62;white-space:nowrap}
+.question-sheet td{padding:5px;border-right:1px solid #eadbc2;border-bottom:1px solid #eadbc2;vertical-align:top;background:#fff}
+.question-sheet tr:hover td{background:#fff8e8}
+.question-sheet tr.selected-row td{background:#ffefc9}
+.question-sheet td[contenteditable="true"]{min-width:90px;outline:none}
+.question-sheet td[contenteditable="true"]:focus{box-shadow:inset 0 0 0 2px #c99645;background:#fffdf1}
+.question-sheet .qtext{min-width:310px;max-width:420px}.question-sheet .option{min-width:145px;max-width:210px}
+.question-sheet .explanation{min-width:260px;max-width:360px}.question-sheet .narrow{min-width:70px;text-align:center}
+.sheet-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:end;margin:10px 0}
+.sheet-actions .btn{padding:8px 11px}
+.sheet-hint{background:#f8ead0;border:1px solid #ddc18c;border-radius:10px;padding:9px;margin:8px 0;color:#6e4a34}
+.row-check{width:18px;height:18px}
+@media(max-width:720px){.question-sheet-wrap{max-height:520px}}
+
+.image-manager-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.image-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px}
+.image-preview{height:180px;background:#eee4d4;border:2px dashed #c5a77b;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:9px 0}
+.image-preview img{width:100%;height:100%;object-fit:contain;background:#fff}
+.path-line{display:grid;grid-template-columns:1fr auto;gap:7px}
+.upload-btn{display:inline-block;cursor:pointer}
+.image-note{background:#fff1ce;border:1px solid #d5b778;border-radius:11px;padding:11px}
+@media(max-width:1000px){.image-manager-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.image-manager-grid{grid-template-columns:1fr}}
+
+.save-connected{background:#dff1db;border-color:#8aba79}
+.save-disconnected{background:#fff0ce;border-color:#d5b778}
+.save-error{background:#f4dddd;border-color:#c88787}
+
+.history-list{display:flex;flex-direction:column;gap:9px}
+.history-item{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.history-item strong{color:var(--red)}
+.history-meta{font-size:13px;color:#765e50;margin-top:4px}
+.unsaved-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#d59a39;margin-right:6px}
+.saved-dot{background:#6aa267}
+
+#appearancePreviewStage .repair-title-toast{position:absolute;left:50%;z-index:3;transform:translateX(-50%);padding:6px 14px;border-radius:10px;background:rgba(94,47,37,.90);border:1px solid rgba(231,193,118,.85);box-shadow:0 5px 16px rgba(60,30,20,.20);font-weight:800;letter-spacing:.04em;white-space:nowrap}
+#appearancePreviewStage .pos-top{top:8%;transform:translate(-50%,0)}
+#appearancePreviewStage .pos-middle{top:50%;transform:translate(-50%,-50%)}
+#appearancePreviewStage .pos-bottom{bottom:8%;transform:translate(-50%,0)}
+
+.stage-prompt-layout{display:grid;grid-template-columns:280px 1fr;gap:14px}
+.stage-prompt-list{position:relative;z-index:2;max-height:520px;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px}
+.stage-prompt-btn{position:relative;z-index:2;display:block;width:100%;text-align:left;border:1px solid transparent;background:#fff8e8;color:#654533;border-radius:10px;padding:10px 12px;margin:5px 0;cursor:pointer;font-weight:700}
+.stage-prompt-btn:hover{background:#f8e5be}
+.stage-prompt-btn.active{background:#8d3d31;color:#fff;border-color:#8d3d31}
+.stage-prompt-editor{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+@media(max-width:800px){.stage-prompt-layout{grid-template-columns:1fr}.stage-prompt-list{max-height:260px}}
+</style>
+</head>
+<body>
+<div class="admin-shell">
+<header class="admin-header">
+ <div>
+  <h1>梦回大观园｜教师管理中心</h1>
+  <p>题库、地图、景点、知识卡、规则、测试与数据备份集中管理</p>
+ </div>
+ <div class="header-actions">
+  <button class="btn" id="browserSaveBtn">💾 保存并同步学生版</button><button class="btn" id="directSaveBtn">💾 写入 config.js</button><button class="btn alt" id="chooseConfigBtn">📂 选择 config.js</button><button class="btn" id="previewStudentBtn">👁 预览学生版</button>
+  <button class="btn" id="publishBtn">📦 导出 config.js</button>
+ </div>
+</header>
+<div id="directSaveStatus" class="status" style="margin-top:12px">
+已载入最新资料。修改后会自动保存到浏览器，并同步给学生版。
+</div>
+
+<nav class="nav">
+ <button class="active" data-page="dashboard">🏠 控制台</button>
+ <button data-page="questions">📚 题库管理</button>
+ <button data-page="stageEditor">🗺 地图与景点</button>
+ <button data-page="knowledge">📖 知识卡</button><button data-page="characters">👤 人物图鉴</button><button data-page="poetry">📜 诗词资料</button><button data-page="images">🖼 图片管理</button><button data-page="audio">🎵 音乐音效</button>
+ <button data-page="statistics">📊 检查与统计</button>
+ <button data-page="testing">🧪 关卡测试</button>
+ <button data-page="appearance">🎨 游戏外观</button><button data-page="settings">⚙ 游戏设置</button>
+ <button data-page="history">🕘 备份记录</button><button data-page="data">💾 数据管理</button>
+</nav>
+
+<main>
+<section id="dashboard" class="panel-page active">
+ <div class="kpis">
+  <div class="kpi">题目总数<b id="dashQuestions">0</b></div>
+  <div class="kpi">景点数量<b id="dashStages">0</b></div>
+  <div class="kpi">初级题<b id="dashEasy">0</b></div>
+  <div class="kpi">中级题<b id="dashMedium">0</b></div>
+  <div class="kpi">高级题<b id="dashHard">0</b></div>
+  <div class="kpi">人物资料<b id="dashCharacters">0</b></div><div class="kpi">诗词资料<b id="dashPoems">0</b></div><div class="kpi">题库问题<b id="dashProblems">0</b></div>
+ </div>
+ <div class="section-card">
+  <h2>快速操作</h2>
+  <div class="quick-grid">
+   <button class="quick" data-go="questions"><strong>📚 表格式题库</strong>直接编辑单元格、勾选批量修改和自动编号</button>
+   <button class="quick" data-go="stageEditor"><strong>🗺 调整地图</strong>拖动15个卡点并编辑景点资料</button>
+   <button class="quick" data-go="testing"><strong>🧪 测试关卡</strong>模拟学生随机抽题与选项顺序</button>
+   <button class="quick" data-go="data"><strong>💾 备份发布</strong>导入、导出、备份与恢复全部资料</button>
+  </div>
+ </div>
+ <div class="two-col">
+  <div class="section-card"><h3>题目类型分布</h3><div id="dashTypes" class="status"></div></div>
+  <div class="section-card"><h3>答案位置分布</h3><div id="dashAnswers" class="status"></div></div>
+ </div>
+</section>
+
+<section id="questions" class="panel-page">
+ <div class="section-card">
+  <div class="top"><div><h2>表格式题库管理</h2><p>双击或直接点击单元格即可修改，离开单元格时自动保存到教师编辑器。</p></div>
+  <button class="btn" id="newQuestionBtn">＋ 新增题目</button></div>
+
+  <div class="search-row">
+   <input id="qSearch" placeholder="搜索编号、题目、选项、解析或人物">
+   <select id="qStage"><option value="">全部景点</option></select>
+   <select id="qLevel"><option value="">全部难度</option><option>初级</option><option>中级</option><option>高级</option></select>
+   <select id="qType"><option value="">全部类型</option><option>人物</option><option>景点</option><option>情节</option><option>诗词</option><option>文学</option><option>综合</option></select>
+   <button class="btn" id="qSearchBtn">搜索</button>
+  </div>
+
+  <div class="sheet-actions">
+   <button class="btn alt" id="selectAllVisibleBtn">勾选筛选结果</button>
+   <button class="btn alt" id="clearSelectionBtn">取消勾选</button>
+   <label>批量修改类型<select id="bulkType"><option>人物</option><option>景点</option><option>情节</option><option>诗词</option><option>文学</option><option>综合</option></select></label>
+   <button class="btn alt" id="bulkTypeBtn">套用到勾选题目</button>
+   <button class="btn alt" id="bulkDeleteBtn">删除勾选题目</button>
+   <button class="btn alt" id="renumberBtn">重新生成编号</button>
+   <span>显示 <b id="qCount">0</b> 题｜已勾选 <b id="selectedCount">0</b> 题</span>
+  </div>
+
+  <div class="sheet-hint">
+   可编辑栏目：景点、难度、类型、题目、A～D、答案字母和解析。修改后请到“数据管理”导出新的 <b>config.js</b>。
+  </div>
+
+  <div class="question-sheet-wrap">
+   <table class="question-sheet">
+    <thead><tr>
+     <th><input id="headerCheck" type="checkbox" class="row-check"></th>
+     <th>编号</th><th>景点</th><th>难度</th><th>类型</th><th>题目</th>
+     <th>A</th><th>B</th><th>C</th><th>D</th><th>答案</th><th>解析</th><th>操作</th>
+    </tr></thead>
+    <tbody id="questionSheetBody"></tbody>
+   </table>
+  </div>
+ </div>
+
+ <div class="section-card">
+  <div class="top"><h2>单题详细编辑</h2><div id="editorLocation" class="badge"></div></div>
+  <div id="questionEditor"></div>
+ </div>
+</section>
+
+<section id="stageEditor" class="panel-page">
+ <div class="two-col">
+  <div class="section-card map-editor">
+   <h2>地图卡点编辑</h2>
+   <p>拖动圆形卡点即可调整位置；修改后记得保存并导出 config.js。</p>
+   <canvas id="mapCanvas" width="1000" height="667"></canvas>
+  </div>
+  <div class="section-card stack">
+   <h2>景点资料</h2>
+   <label>选择景点<select id="stageSelect"></select></label>
+   <div class="form-grid">
+    <label>X位置（%）<input id="stageX" type="number" min="0" max="100" step="0.1"></label>
+    <label>Y位置（%）<input id="stageY" type="number" min="0" max="100" step="0.1"></label>
+    <label>关卡序号<input id="stageNumber" type="number" min="1" max="99"></label>
+   </div>
+   <div class="form-grid">
+    <label>圆圈大小（半径）
+     <input id="stageMarkerRadius" type="range" min="10" max="40" step="1">
+     <input id="stageMarkerRadiusNumber" type="number" min="10" max="40" step="1">
+    </label>
+    <label>点击范围（半径）
+     <input id="stageHitRadius" type="range" min="24" max="100" step="1">
+     <input id="stageHitRadiusNumber" type="number" min="24" max="100" step="1">
+    </label>
+    <div class="status">黄色透明校准圈预设半径为 14px，与地图原有编号圆圈对齐；蓝色虚线圆仅代表点击范围。</div>
+   </div>
+   <label>景点名称<input id="stageName"></label>
+   <label>代表人物<input id="stagePerson"></label>
+   <label>人物显示方式<select id="stagePersonDisplay"><option value="after_completion">完成后显示</option><option value="always">一直显示</option><option value="hidden">不显示</option></select></label>
+   <label>提示线索<textarea id="stageClue" rows="2"></textarea></label>
+   <label>景点图标<input id="stageIcon"></label>
+   <label>修复任务<textarea id="stageRepair" rows="3"></textarea></label>
+   <label>修复动画类型<select id="stageEffect">
+    <option value="gate">门楼</option><option value="water">水岸植物</option><option value="lantern">庭院</option>
+    <option value="bamboo">竹林</option><option value="flowers">花圃</option><option value="scroll">书斋</option>
+    <option value="field">田园</option><option value="lotus">荷塘</option><option value="moon">月夜高台</option>
+    <option value="night">夜景溪馆</option><option value="island">水洲</option><option value="tea">庵堂茶席</option>
+    <option value="pavilion">亭台</option><option value="painting">画室</option><option value="final">最终百花</option>
+   </select></label>
+   <div class="toolbar">
+     <button class="btn" id="saveStageBtn">保存景点资料</button>
+     <button class="btn alt" id="calibrateAllMarkersBtn">全部校准为地图圆圈大小</button>
+    </div>
+  </div>
+ </div>
+</section>
+
+<section id="knowledge" class="panel-page">
+ <div class="section-card stack">
+  <div class="top"><div><h2>景点知识卡</h2><p>学生完成关卡后可在导览册查看。</p></div>
+   <select id="knowledgeStage" style="max-width:260px"></select>
+  </div>
+  <label>景点简介<textarea id="knowledgeIntro" rows="5"></textarea></label>
+  <label>文学意义<textarea id="knowledgeMeaning" rows="5"></textarea></label>
+  <label>修复成果说明<textarea id="knowledgeRepair" rows="3"></textarea></label>
+  <button class="btn" id="saveKnowledgeBtn">保存知识卡</button>
+ </div>
+</section>
+
+
+<section id="characters" class="panel-page">
+ <div class="two-col">
+  <div class="section-card">
+   <div class="top"><h2>人物图鉴管理</h2><button class="btn" id="addCharacterBtn">＋ 新增人物</button></div>
+   <div id="characterList" class="results"></div>
+  </div>
+  <div class="section-card stack">
+   <h2>人物资料编辑</h2>
+   <label>姓名<input id="charName"></label>
+   <div class="form-grid">
+    <label>相关景点<select id="charStage"></select></label>
+    <label>图标<input id="charIcon"></label>
+    <label>图片路径<input id="charImage" placeholder="例如 images/characters/林黛玉.png"></label>
+   </div>
+   <label>身份<textarea id="charIdentity" rows="3"></textarea></label>
+   <label>性格<textarea id="charPersonality" rows="3"></textarea></label>
+   <label>代表情节<textarea id="charStories" rows="4"></textarea></label>
+   <label>相关诗词<textarea id="charPoems" rows="3"></textarea></label>
+   <div class="toolbar"><button class="btn" id="saveCharacterBtn">保存人物</button><button class="btn alt" id="deleteCharacterBtn">删除人物</button></div>
+  </div>
+ </div>
+</section>
+
+<section id="poetry" class="panel-page">
+ <div class="two-col">
+  <div class="section-card">
+   <div class="top"><h2>诗词资料管理</h2><button class="btn" id="addPoemBtn">＋ 新增诗词</button></div>
+   <div id="poemList" class="results"></div>
+  </div>
+  <div class="section-card stack">
+   <h2>诗词资料编辑</h2>
+   <label>标题<input id="poemTitle"></label>
+   <div class="form-grid">
+    <label>作者<input id="poemAuthor"></label>
+    <label>相关景点<select id="poemStage"></select></label>
+    <label>图片路径<input id="poemImage" placeholder="可留空"></label>
+   </div>
+   <label>节选<textarea id="poemExcerpt" rows="3"></textarea></label>
+   <label>创作背景<textarea id="poemBackground" rows="4"></textarea></label>
+   <label>文学意义<textarea id="poemMeaning" rows="4"></textarea></label>
+   <div class="toolbar"><button class="btn" id="savePoemBtn">保存诗词</button><button class="btn alt" id="deletePoemBtn">删除诗词</button></div>
+  </div>
+ </div>
+</section>
+
+<section id="images" class="panel-page">
+ <div class="section-card">
+  <div class="top"><div><h2>图片管理器</h2><p>可填写相对路径，或选择电脑图片并嵌入 config.js。</p></div>
+   <button class="btn" id="refreshImagesBtn">刷新预览</button></div>
+  <div class="image-note">
+   <b>路径方式：</b>图片放入 <code>images</code> 文件夹，再填写如 <code>images/人物/林黛玉.png</code>。<br>
+   <b>嵌入方式：</b>直接选择图片，教师版会转成内嵌资料；无需复制文件，但 config.js 会变大。
+  </div>
+ </div>
+
+ <div class="section-card">
+  <h2>正式地图</h2>
+  <div class="two-col">
+   <div>
+    <div id="mapImagePreview" class="image-preview">尚未载入地图</div>
+   </div>
+   <div class="stack">
+    <label>地图图片路径<input id="mapImagePath" placeholder="images/大观园正式地图.png"></label>
+    <div class="toolbar">
+     <button class="btn" id="saveMapImageBtn">保存地图路径</button>
+     <label class="btn alt upload-btn">选择并嵌入地图<input id="mapImageUpload" type="file" accept="image/*" hidden></label>
+     <button class="btn alt" id="resetMapImageBtn">恢复默认地图</button>
+    </div>
+   </div>
+  </div>
+ </div>
+
+ <div class="section-card">
+  <div class="top"><h2>人物图片</h2><span>共 <b id="imageCharacterCount">0</b> 项</span></div>
+  <div id="characterImageGrid" class="image-manager-grid"></div>
+ </div>
+
+ <div class="section-card">
+  <div class="top"><h2>诗词图片</h2><span>共 <b id="imagePoemCount">0</b> 项</span></div>
+  <div id="poemImageGrid" class="image-manager-grid"></div>
+ </div>
+ <div id="imageStatus" class="status">尚未修改图片。</div>
+</section>
+
+<section id="audio" class="panel-page">
+ <div class="section-card">
+  <div class="top"><div><h2>音乐与音效管理</h2><p>调整背景音乐（单曲）、按钮音、答对音、答错音与修复完成音。</p></div>
+   <button class="btn" id="audioApplyBtn">保存音乐设置</button></div>
+  <div class="three-col">
+   <label><input id="musicEnabledInput" type="checkbox" style="width:auto"> 启用背景音乐</label>
+   <label><input id="soundEnabledInput" type="checkbox" style="width:auto"> 启用按钮与答题音效</label>
+   <div></div>
+  </div>
+  <div class="two-col">
+   <label>背景音乐音量：<b id="musicVolumeValue">34%</b>
+    <input id="musicVolumeInput" type="range" min="0" max="100" step="1">
+   </label>
+   <label>音效音量：<b id="soundVolumeValue">75%</b>
+    <input id="soundVolumeInput" type="range" min="0" max="100" step="1">
+   </label>
+  </div>
+ </div>
+
+ <div class="section-card">
+  <h2>音频文件</h2>
+  <div class="image-note">
+   可以填写 <code>audio/文件名.mp3</code>、<code>.wav</code> 或 <code>.ogg</code>；也可以直接选择电脑中的音频并嵌入 config.js。
+  </div>
+  <div id="audioManagerGrid" class="image-manager-grid"></div>
+ </div>
+ <div id="audioStatus" class="status">尚未修改音乐或音效。</div>
+</section>
+<section id="statistics" class="panel-page">
+ <div class="kpis">
+  <div class="kpi">题目总数<b id="statTotal">0</b></div>
+  <div class="kpi">疑似重复<b id="statDuplicates">0</b></div>
+  <div class="kpi">格式错误<b id="statErrors">0</b></div>
+  <div class="kpi">缺少解析<b id="statMissingExp">0</b></div>
+  <div class="kpi">平均每关<b id="statAverage">0</b></div>
+  <div class="kpi">选项重复<b id="statOptionDup">0</b></div>
+ </div>
+ <div class="section-card"><h2>答案位置</h2><div id="statAnswers" class="status"></div></div>
+ <div class="section-card table-wrap">
+  <h2>各关题量</h2>
+  <table><thead><tr><th>景点</th><th>总数</th><th>初级</th><th>中级</th><th>高级</th><th>人物</th><th>景点</th><th>情节</th><th>诗词</th><th>文学</th><th>综合</th></tr></thead><tbody id="statRows"></tbody></table>
+ </div>
+ <div class="section-card"><h2>自动检查结果</h2><div id="problemReport" class="status"></div></div>
+</section>
+
+<section id="testing" class="panel-page">
+ <div class="section-card">
+  <h2>关卡测试</h2>
+  <div class="toolbar">
+   <label>景点<select id="testStage"></select></label>
+   <label>抽题数<select id="testCount"><option>1</option><option>3</option><option selected>5</option><option>8</option><option>10</option></select></label>
+   <button class="btn" id="startTestBtn">开始测试</button>
+  </div>
+  <div id="testArea" class="status">请选择景点并开始测试。</div>
+ </div>
+</section>
+
+
+<section id="appearance" class="panel-page">
+ <div class="two-col">
+  <div class="section-card stack">
+   <h2>修复完成标题</h2>
+   <label>标题文字<input id="appearanceTitleText" placeholder="例如：✓ {stage}修复完成"><small class="help">使用 {stage} 自动带入景点名称。</small></label>
+   <div class="form-grid">
+    <label>字体大小<input id="appearanceTitleSize" type="range" min="10" max="40" step="1"><input id="appearanceTitleSizeNumber" type="number" min="10" max="40" step="1"></label>
+    <label>字体颜色<input id="appearanceTitleColor" type="color"></label>
+    <label>位置<select id="appearanceTitlePosition"><option value="top">上方</option><option value="middle">中央</option><option value="bottom">下方</option></select></label>
+   </div>
+   <div class="form-grid">
+    <label>透明度：<b id="appearanceOpacityValue">92%</b><input id="appearanceOpacity" type="range" min="20" max="100" step="1"></label>
+    <label>停留时间（毫秒）<input id="appearanceDuration" type="number" min="500" max="8000" step="100"></label>
+    <label>淡出时间（毫秒）<input id="appearanceFade" type="number" min="100" max="3000" step="100"></label>
+   </div>
+   <div class="toolbar"><button class="btn" id="saveAppearanceBtn">保存外观设置</button><button class="btn alt" id="resetAppearanceBtn">恢复默认</button></div>
+  </div>
+  <div class="section-card">
+   <h2>即时预览</h2>
+   <div id="appearancePreviewStage" style="position:relative;height:360px;border-radius:16px;overflow:hidden;border:2px solid var(--line);background:#dfead9">
+    <img src="images/大观园正式地图.png" alt="地图预览" style="width:100%;height:100%;object-fit:cover">
+    <div id="appearancePreviewPoint" style="position:absolute;width:12px;height:12px;border-radius:50%;background:#ffd65a;border:2px solid #8d3d31;transform:translate(-50%,-50%);z-index:2"></div><div id="appearancePreviewTitle" class="repair-title-toast pos-top show">✓ 潇湘馆修复完成</div>
+   </div>
+   <p class="help">这里只预览标题的文字、大小、颜色、位置和透明度。</p>
+  </div>
+ </div>
+
+ <div class="section-card" style="margin-top:14px">
+  <div class="top">
+   <div><h2>景点专属修复提示</h2><p>点击左侧地点，再修改该地点的专属标题与文学短句。</p></div>
+  </div>
+  <div class="stage-prompt-layout">
+   <div id="appearanceStageList" class="stage-prompt-list"></div>
+   <div class="stage-prompt-editor">
+    <div class="badge" id="appearanceSelectedStageName">尚未选择地点</div>
+    <label>专属标题
+     <input id="appearanceStageTitle" placeholder="例如：✓ {stage}修复完成">
+     <small class="help">可使用 {stage} 自动带入地点名称；留空时使用全局标题。</small>
+    </label>
+    <label>文学短句
+     <input id="appearanceStageLine" placeholder="例如：竹影摇风，书香满院。">
+    </label>
+    <div class="form-grid">
+     <label>横向偏移 X
+      <input id="appearancePromptOffsetX" type="range" min="-250" max="250" step="1">
+      <input id="appearancePromptOffsetXNumber" type="number" min="-250" max="250" step="1">
+      <small class="help">负数向左，正数向右。</small>
+     </label>
+     <label>纵向偏移 Y
+      <input id="appearancePromptOffsetY" type="range" min="-250" max="250" step="1">
+      <input id="appearancePromptOffsetYNumber" type="number" min="-250" max="250" step="1">
+      <small class="help">负数向上，正数向下。</small>
+     </label>
+    </div>
+    <div class="toolbar" style="margin-top:10px">
+     <button class="btn" id="saveStageAppearanceBtn">保存此地点提示</button>
+     <button class="btn alt" id="clearStageAppearanceBtn">清除专属标题</button><button class="btn alt" id="resetPromptPositionBtn">恢复默认位置</button>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+<section id="settings" class="panel-page">
+ <div class="section-card">
+  <h2>游戏规则</h2>
+  <div class="form-grid">
+   <label>每关抽题数<input id="setQuestions" type="number" min="1" max="20"></label>
+   <label>每题得分<input id="setScore" type="number" min="0"></label>
+   <label>每题金币<input id="setCoins" type="number" min="0"></label>
+   <label>首次通关得分<input id="setClearScore" type="number" min="0"></label>
+   <label>首次通关金币<input id="setClearCoins" type="number" min="0"></label>
+   <label>修复动画秒数<input id="setAnimation" type="number" min="3" max="12" step=".5"></label>
+  </div>
+  <div class="three-col">
+   <label><input id="setPractice" type="checkbox" style="width:auto"> 允许重复练习</label>
+   <label><input id="setPracticeRewards" type="checkbox" style="width:auto"> 练习给予奖励</label>
+   <label><input id="setAutoNext" type="checkbox" style="width:auto"> 显示进入下一关</label>
+   <label><input id="setBrightness" type="checkbox" style="width:auto"> 随进度提高地图亮度</label>
+   <label><input id="setFlower" type="checkbox" style="width:auto"> 修复动画显示花木效果</label>
+   <label><input id="setFinal" type="checkbox" style="width:auto"> 全通关庆祝画面</label>
+   <label><input id="setStatusPanel" type="checkbox" style="width:auto"> 显示地图状态面板</label>
+   <label><input id="setNextHint" type="checkbox" style="width:auto"> 完成后提示下一关</label>
+  </div>
+  <button class="btn" id="saveSettingsBtn">保存游戏规则</button>
+  <div id="settingsStatus" class="status">修改只保存在教师编辑器中；导出 config.js 后才会应用到学生版。</div>
+ </div>
+</section>
+
+
+<section id="history" class="panel-page">
+ <div class="section-card">
+  <div class="top">
+   <div><h2>自动备份与修改记录</h2><p>教师后台会在每次重要修改后保存本机备份，最多保留20份。</p></div>
+   <div class="toolbar">
+    <button class="btn" id="createBackupBtn">立即建立备份</button>
+    <button class="btn alt" id="clearBackupsBtn">清除全部备份</button>
+   </div>
+  </div>
+  <div class="three-col">
+   <label><input id="backupEnabledInput" type="checkbox" style="width:auto"> 启用自动备份</label>
+   <label>备份数量上限<input id="backupLimitInput" type="number" min="5" max="50" value="20"></label>
+   <div class="status" id="backupSummary">尚未建立备份。</div>
+  </div>
+ </div>
+ <div class="section-card">
+  <div class="top"><div><h2>Backup 文件夹备份</h2><p>通过“启动教师后台.bat”打开时，备份会真正写入游戏资料夹。</p></div>
+   <button class="btn" id="refreshFolderBackupsBtn">刷新文件夹备份</button></div>
+  <div id="folderBackupStatus" class="status">正在读取 Backup 文件夹……</div>
+  <div id="folderBackupList" class="history-list"></div>
+ </div>
+ <div class="section-card">
+  <h2>浏览器本机备份</h2>
+  <div id="backupList" class="history-list"></div>
+ </div>
+</section>
+<section id="data" class="panel-page">
+ <div class="data-grid">
+  <div class="data-card"><h3>Excel题库</h3>
+   <label class="btn" style="display:inline-block;cursor:pointer">导入 Excel<input id="excelImport" type="file" accept=".xlsx,.xls" hidden></label>
+   <button class="btn alt" id="excelExport">导出 Excel</button>
+   <button class="btn alt" id="checkBank">检查题库</button>
+  </div>
+  <div class="data-card"><h3>浏览器同步资料</h3>
+   <button class="btn" id="browserSaveDataBtn">保存并同步学生版</button>
+   <button class="btn alt" id="clearSharedDataBtn">清除浏览器同步资料</button>
+   <small class="help">学生版与教师版需通过“启动教师后台.bat”打开，才能稳定共享同一份资料。</small>
+  </div>
+  <div class="data-card"><h3>完整备份</h3>
+   <button class="btn" id="backupJson">下载备份 JSON</button>
+   <label class="btn alt" style="display:inline-block;cursor:pointer">恢复备份<input id="restoreJson" type="file" accept=".json" hidden></label>
+  </div>
+  <div class="data-card"><h3>直接保存</h3>
+   <button class="btn" id="dataChooseConfigBtn">选择 config.js</button>
+   <button class="btn alt" id="dataDirectSaveBtn">保存全部资料</button>
+   <label style="margin-top:9px"><input id="autoSaveInput" type="checkbox" style="width:auto"> 修改后自动保存</label>
+   <small class="help">自动保存只有在已连接 config.js 后才会生效。</small>
+  </div>
+  <div class="data-card"><h3>发布游戏</h3>
+   <button class="btn" id="exportConfig">导出 config.js</button>
+   <button class="btn alt" id="exportStudent">导出内置题库学生版</button>
+   <button class="btn alt" id="exportTxt">导出题库 TXT</button>
+  </div>
+  <div class="data-card"><h3>本机学生存档</h3>
+   <p>清除当前浏览器中的学生闯关记录。</p>
+   <button class="btn alt" id="clearStudentSave">清除学生存档</button>
+  </div>
+  <div class="data-card"><h3>编辑器恢复</h3>
+   <p>恢复为本次打开教师版时的资料。</p>
+   <button class="btn alt" id="resetEditor">恢复初始资料</button>
+  </div>
+  <div class="data-card"><h3>使用提醒</h3>
+   <p>修改后请导出新的 <code>config.js</code>。若嵌入图片，文件会明显变大，这是正常现象。</p>
+  </div>
+ </div>
+ <div id="dataStatus" class="status">尚未进行导入、导出或备份操作。</div>
+</section>
+</main>
+</div>
+
+<script src="excel_io.js"></script>
+<script src="config.js"></script>
+<script>
+"use strict";
+const SHARED_CONFIG_KEY="dreamGardenSharedConfigV1";
+function readSharedConfig(){
+  try{
+    const saved=localStorage.getItem(SHARED_CONFIG_KEY);
+    if(saved){
+      const parsed=JSON.parse(saved);
+      if(parsed&&Array.isArray(parsed.stages))return parsed;
+    }
+  }catch(err){
+    console.warn("读取浏览器资料失败：",err);
+  }
+  return GAME_CONFIG;
+}
+let config=JSON.parse(JSON.stringify(readSharedConfig()));
+const INITIAL_CONFIG=JSON.parse(JSON.stringify(GAME_CONFIG));
+const configChannel=("BroadcastChannel" in window)?new BroadcastChannel("dreamGardenConfigChannel"):null;
+let selectedStage=0,selectedQuestion=0,selectedCharacter=0,selectedPoem=0,dragging=false,testPool=[],testIndex=0,testScore=0;
+
+const $=id=>document.getElementById(id);
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function download(name,text,type="text/plain;charset=utf-8"){const b=new Blob([text],{type}),u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=name;a.click();URL.revokeObjectURL(u)}
+
+let configFileHandle=null;
+let autoSaveTimer=null;
+const DIRECT_SAVE_HANDLE_KEY="gardenConfigFileHandle";
+
+
+function persistSharedConfig(message="资料已保存到浏览器。",showAlert=false){
+  try{
+    localStorage.setItem(SHARED_CONFIG_KEY,JSON.stringify(config));
+    if(configChannel)configChannel.postMessage({type:"config-updated",time:Date.now()});
+    updateDirectSaveStatus(message+" 学生版重新载入后即可使用。","connected");
+    if(showAlert)alert(message+"\n学生版重新载入后即可看到最新内容。");
+    return true;
+  }catch(err){
+    updateDirectSaveStatus("保存浏览器资料失败："+(err.message||err),"error");
+    if(showAlert)alert("保存失败："+(err.message||err));
+    return false;
+  }
+}
+
+function configText(){
+  return "const GAME_CONFIG = "+JSON.stringify(config,null,2)+";\n";
+}
+function updateDirectSaveStatus(message,type="disconnected"){
+  const el=$("directSaveStatus");
+  el.innerHTML=`<span class="${type==="connected"?"unsaved-dot saved-dot":"unsaved-dot"}"></span>${esc(message)}`;
+  el.className="status "+(
+    type==="connected"?"save-connected":
+    type==="error"?"save-error":"save-disconnected"
+  );
+}
+
+let desktopServiceAvailable=false;
+
+async function checkDesktopService(){
+  try{
+    const response=await fetch("/api/status",{cache:"no-store"});
+    if(!response.ok)throw new Error("服务未连接");
+    const data=await response.json();
+    desktopServiceAvailable=!!data.ok;
+    if(desktopServiceAvailable){
+      updateDirectSaveStatus("Windows桌面服务已连接。保存时会直接更新 config.js，并备份到 Backup 文件夹。","connected");
+      await renderFolderBackups();
+      return true;
+    }
+  }catch{}
+  desktopServiceAvailable=false;
+  updateDirectSaveStatus("目前以普通浏览器模式打开。可选择 config.js，或改用“启动教师后台.bat”。","disconnected");
+  return false;
+}
+
+async function desktopSaveConfig(silent=false){
+  try{
+    const response=await fetch("/api/save-config",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        configText:configText(),
+        reason:silent?"自动保存":"教师后台保存"
+      })
+    });
+    const data=await response.json();
+    if(!response.ok||!data.ok)throw new Error(data.error||"保存失败");
+    updateDirectSaveStatus("保存成功："+data.time+"；备份："+(data.backup||"无"),"connected");
+    await renderFolderBackups();
+    if(!silent)alert("资料已直接保存，旧版已备份到 Backup 文件夹。");
+    return true;
+  }catch(err){
+    updateDirectSaveStatus("桌面保存失败："+(err.message||err),"error");
+    return false;
+  }
+}
+
+async function renderFolderBackups(){
+  const status=document.getElementById("folderBackupStatus");
+  const list=document.getElementById("folderBackupList");
+  if(!status||!list)return;
+  if(!desktopServiceAvailable){
+    status.textContent="普通浏览器模式无法读取 Backup 文件夹。请双击“启动教师后台.bat”。";
+    list.innerHTML="";
+    return;
+  }
+  try{
+    const response=await fetch("/api/backups",{cache:"no-store"});
+    const data=await response.json();
+    const items=data.items||[];
+    status.textContent=items.length?`Backup 文件夹共有 ${items.length} 份备份。`:"Backup 文件夹尚无备份。";
+    list.innerHTML=items.length?items.map(item=>`
+      <div class="history-item">
+       <div><strong>${esc(item.name)}</strong><div class="history-meta">${esc(item.time)}｜${Math.max(1,Math.round(item.size/1024))} KB</div></div>
+       <div class="toolbar">
+        <button class="btn alt folder-restore" data-name="${esc(item.name)}">恢复</button>
+        <button class="btn alt folder-delete" data-name="${esc(item.name)}">删除</button>
+       </div>
+      </div>`).join(""):'<div class="status">尚无文件夹备份。</div>';
+
+    list.querySelectorAll(".folder-restore").forEach(btn=>btn.onclick=async()=>{
+      if(!confirm("确定恢复这份备份吗？当前 config.js 会先建立安全备份。"))return;
+      const response=await fetch("/api/restore-backup",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:btn.dataset.name})
+      });
+      const data=await response.json();
+      if(!response.ok||!data.ok)return alert("恢复失败："+(data.error||"未知错误"));
+      alert("备份已恢复。请重新打开教师版与学生版，以读取恢复后的资料。");
+      await renderFolderBackups();
+    });
+
+    list.querySelectorAll(".folder-delete").forEach(btn=>btn.onclick=async()=>{
+      if(!confirm("确定删除这份 Backup 文件夹备份吗？"))return;
+      const response=await fetch("/api/delete-backup",{
+        method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({name:btn.dataset.name})
+      });
+      const data=await response.json();
+      if(!response.ok||!data.ok)return alert("删除失败："+(data.error||"未知错误"));
+      await renderFolderBackups();
+    });
+  }catch(err){
+    status.textContent="读取 Backup 文件夹失败："+(err.message||err);
+  }
+}
+
+async function chooseConfigFile(){
+  if(!window.showOpenFilePicker){
+    updateDirectSaveStatus("目前浏览器不支持直接写入文件，请继续使用“导出 config.js”。","error");
+    alert("建议使用最新版 Chrome 或 Microsoft Edge 打开教师版。Firefox 通常不支持直接覆盖本机文件。");
+    return false;
+  }
+  try{
+    const [handle]=await window.showOpenFilePicker({
+      multiple:false,
+      types:[{description:"JavaScript 配置文件",accept:{"text/javascript":[".js"]}}]
+    });
+    configFileHandle=handle;
+    updateDirectSaveStatus("已连接："+handle.name+"。现在可直接保存全部资料。","connected");
+    return true;
+  }catch(err){
+    if(err.name!=="AbortError")updateDirectSaveStatus("选择文件失败："+(err.message||err),"error");
+    return false;
+  }
+}
+async function directSaveConfig(silent=false){
+  persistSharedConfig("资料已同步到学生版。",false);
+  createBackup("直接保存前备份",false);
+  if(desktopServiceAvailable){
+    return await desktopSaveConfig(silent);
+  }
+  if(!configFileHandle){
+    const ok=await chooseConfigFile();
+    if(!ok)return false;
+  }
+  try{
+    const permission=await configFileHandle.queryPermission({mode:"readwrite"});
+    if(permission!=="granted"){
+      const requested=await configFileHandle.requestPermission({mode:"readwrite"});
+      if(requested!=="granted")throw new Error("未获得写入权限");
+    }
+    const writable=await configFileHandle.createWritable();
+    await writable.write(configText());
+    await writable.close();
+    updateDirectSaveStatus("保存成功："+configFileHandle.name+"｜"+new Date().toLocaleTimeString(),"connected");
+    if(!silent)alert("全部资料已经直接保存到 config.js。");
+    return true;
+  }catch(err){
+    updateDirectSaveStatus("直接保存失败："+(err.message||err)+"。可改用“导出 config.js”。","error");
+    if(!silent)alert("直接保存失败，请使用“导出 config.js”备用方式。");
+    return false;
+  }
+}
+function scheduleAutoSave(){
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(()=>{
+    persistSharedConfig("修改已自动保存到浏览器。",false);
+    if($("autoSaveInput")?.checked&&(configFileHandle||desktopServiceAvailable)){
+      directSaveConfig(true);
+    }
+  },500);
+}
+function markChanged(message="资料已修改，尚未保存。"){
+  updateDirectSaveStatus(message+" 正在保存并同步学生版……","connected");
+  scheduleAutoSave();
+  scheduleBackup(message);
+}
+
+
+const BACKUP_KEY="gardenTeacherBackups";
+const BACKUP_ENABLED_KEY="gardenTeacherBackupEnabled";
+const BACKUP_LIMIT_KEY="gardenTeacherBackupLimit";
+let lastBackupSignature="";
+
+function getBackups(){
+  try{return JSON.parse(localStorage.getItem(BACKUP_KEY)||"[]")}catch{return[]}
+}
+function setBackups(items){
+  localStorage.setItem(BACKUP_KEY,JSON.stringify(items));
+}
+function configSignature(){
+  return JSON.stringify(config);
+}
+function createBackup(reason="手动备份",force=false){
+  if(localStorage.getItem(BACKUP_ENABLED_KEY)==="0"&&!force)return;
+  const sig=configSignature();
+  if(!force&&sig===lastBackupSignature)return;
+  const items=getBackups();
+  items.unshift({
+    id:Date.now(),
+    time:new Date().toISOString(),
+    reason,
+    questionCount:allRecords().length,
+    stageCount:(config.stages||[]).length,
+    data:JSON.parse(sig)
+  });
+  const limit=Math.max(5,Math.min(50,Number(localStorage.getItem(BACKUP_LIMIT_KEY)||20)));
+  setBackups(items.slice(0,limit));
+  lastBackupSignature=sig;
+  if(document.getElementById("backupList"))renderBackups();
+}
+function scheduleBackup(reason){
+  clearTimeout(window.__backupTimer);
+  window.__backupTimer=setTimeout(()=>createBackup(reason,false),900);
+}
+function renderBackups(){
+  $("backupEnabledInput").checked=localStorage.getItem(BACKUP_ENABLED_KEY)!=="0";
+  $("backupLimitInput").value=Number(localStorage.getItem(BACKUP_LIMIT_KEY)||20);
+  const items=getBackups();
+  $("backupSummary").textContent=items.length?`目前保存 ${items.length} 份本机备份。`:"尚未建立备份。";
+  $("backupList").innerHTML=items.length?items.map((b,i)=>`
+   <div class="history-item">
+    <div>
+     <strong>${esc(b.reason||"备份")}</strong>
+     <div class="history-meta">${new Date(b.time).toLocaleString()}｜${b.questionCount||0}题｜${b.stageCount||0}景点</div>
+    </div>
+    <div class="toolbar">
+     <button class="btn alt restore-backup" data-index="${i}">恢复</button>
+     <button class="btn alt download-backup" data-index="${i}">下载</button>
+     <button class="btn alt delete-backup" data-index="${i}">删除</button>
+    </div>
+   </div>`).join(""):'<div class="status">尚无备份记录。</div>';
+  $("backupList").querySelectorAll(".restore-backup").forEach(btn=>btn.onclick=()=>{
+    const item=getBackups()[+btn.dataset.index];
+    if(!item||!confirm("确定恢复这份备份吗？当前未保存修改会被覆盖。"))return;
+    config=JSON.parse(JSON.stringify(item.data));
+    selectedStage=0;selectedQuestion=0;selectedCharacter=0;selectedPoem=0;
+    fillStageLists();loadStage();loadKnowledge();loadAppearance();loadSettings();renderDashboard();runSearch();renderQuestionEditor();renderCharacters();renderPoems();renderImageManager();renderAudioManager();
+    markChanged("已恢复备份："+item.reason);
+    createBackup("恢复前自动备份",true);
+    alert("备份已恢复到教师编辑器。");
+  });
+  $("backupList").querySelectorAll(".download-backup").forEach(btn=>btn.onclick=()=>{
+    const item=getBackups()[+btn.dataset.index];
+    if(item)download("梦回大观园_备份_"+item.id+".json",JSON.stringify(item.data,null,2),"application/json");
+  });
+  $("backupList").querySelectorAll(".delete-backup").forEach(btn=>btn.onclick=()=>{
+    const items=getBackups();items.splice(+btn.dataset.index,1);setBackups(items);renderBackups();
+  });
+}
+$("createBackupBtn").onclick=()=>{createBackup("手动备份",true);alert("备份已建立。")};
+$("clearBackupsBtn").onclick=()=>{if(confirm("确定清除全部本机备份吗？")){setBackups([]);renderBackups()}};
+$("backupEnabledInput").onchange=e=>localStorage.setItem(BACKUP_ENABLED_KEY,e.target.checked?"1":"0");
+$("backupLimitInput").onchange=e=>{
+  const v=Math.max(5,Math.min(50,+e.target.value||20));
+  localStorage.setItem(BACKUP_LIMIT_KEY,String(v));
+  setBackups(getBackups().slice(0,v));
+  renderBackups();
+};
+
+function allRecords(){const out=[];config.stages.forEach((stage,si)=>stage.questions.forEach((q,qi)=>out.push({stage,si,q,qi})));return out}
+function showPage(id){
+ document.querySelectorAll(".panel-page").forEach(x=>x.classList.toggle("active",x.id===id));
+ document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===id));
+ if(id==="dashboard")renderDashboard();
+ if(id==="statistics")renderStatistics();
+ if(id==="questions")runSearch();
+ if(id==="stageEditor"){loadStage();drawMap()}
+ if(id==="knowledge")loadKnowledge();
+ if(id==="characters")renderCharacters();
+ if(id==="poetry")renderPoems();
+ if(id==="images")renderImageManager();
+ if(id==="audio")renderAudioManager();
+ if(id==="appearance"){renderAppearanceStageList();loadAppearance();}
+ if(id==="settings")loadSettings();
+ if(id==="history")renderBackups();
+}
+document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.go)));
+
+function fillStageLists(){
+ const opts=config.stages.map((s,i)=>`<option value="${i}">${s.n}. ${esc(s.name)}</option>`).join("");
+ $("stageSelect").innerHTML=opts;$("knowledgeStage").innerHTML=opts;$("testStage").innerHTML=opts;$("charStage").innerHTML=opts;$("poemStage").innerHTML=opts;
+ $("qStage").innerHTML='<option value="">全部景点</option>'+config.stages.map(s=>`<option>${esc(s.name)}</option>`).join("");
+}
+function checkExtended(){
+ const base=ExcelIO.checkConfig(config),missing=[],optionDup=[];
+ config.stages.forEach(stage=>stage.questions.forEach((q,i)=>{
+   if(!String(q.exp||"").trim())missing.push(`${stage.name} 第${i+1}题缺少解析`);
+   if(Array.isArray(q.a)&&new Set(q.a.map(x=>String(x).trim())).size<4)optionDup.push(`${stage.name} 第${i+1}题选项重复`);
+ }));
+ return {...base,missing,optionDup};
+}
+function renderDashboard(){
+ const records=allRecords(),check=checkExtended();
+ $("dashQuestions").textContent=records.length;$("dashStages").textContent=config.stages.length;
+ $("dashEasy").textContent=records.filter(r=>r.q.level==="初级").length;
+ $("dashMedium").textContent=records.filter(r=>r.q.level==="中级").length;
+ $("dashHard").textContent=records.filter(r=>r.q.level==="高级").length;
+ $("dashCharacters").textContent=(config.characters||[]).length;$("dashPoems").textContent=(config.poems||[]).length;
+ $("dashProblems").textContent=check.errors.length+check.duplicates.length+check.missing.length;
+ const types={};records.forEach(r=>types[r.q.type||"综合"]=(types[r.q.type||"综合"]||0)+1);
+ $("dashTypes").innerHTML=Object.entries(types).map(([k,v])=>`<b>${esc(k)}</b>：${v}`).join("　");
+ const a=check.answerCounts,total=Math.max(1,records.length);
+ $("dashAnswers").innerHTML=["A","B","C","D"].map(k=>`<b>${k}</b>：${a[k]}（${Math.round(a[k]/total*100)}%）`).join("　");
+}
+
+function ensureQuestionIds(){
+ config.stages.forEach(stage=>stage.questions.forEach((q,i)=>{
+   if(!q.id)q.id=`HL-${String(stage.n).padStart(2,"0")}-${String(i+1).padStart(3,"0")}`;
+ }));
+}
+function filteredQuestionRows(){
+ const term=$("qSearch").value.trim().toLowerCase(),stage=$("qStage").value,level=$("qLevel").value,type=$("qType").value;
+ return allRecords().filter(r=>{
+  if(stage&&r.stage.name!==stage)return false;
+  if(level&&r.q.level!==level)return false;
+  if(type&&(r.q.type||"综合")!==type)return false;
+  return !term||(r.q.id+" "+r.stage.name+" "+r.stage.person+" "+r.q.q+" "+r.q.a.join(" ")+" "+(r.q.exp||"")).toLowerCase().includes(term);
+ });
+}
+function runSearch(){
+ ensureQuestionIds();
+ const rows=filteredQuestionRows();
+ window.currentQuestionResults=rows;
+ $("qCount").textContent=rows.length;
+ const stageOptions=config.stages.map(s=>s.name);
+ $("questionSheetBody").innerHTML=rows.length?rows.map((r,i)=>`
+  <tr data-row="${i}" data-si="${r.si}" data-qi="${r.qi}">
+   <td class="narrow"><input type="checkbox" class="row-check q-select"></td>
+   <td class="narrow" data-field="id" contenteditable="true">${esc(r.q.id)}</td>
+   <td data-field="stage"><select class="cell-stage">${stageOptions.map(x=>`<option ${x===r.stage.name?"selected":""}>${esc(x)}</option>`).join("")}</select></td>
+   <td class="narrow" data-field="level"><select class="cell-level"><option ${r.q.level==="初级"?"selected":""}>初级</option><option ${r.q.level==="中级"?"selected":""}>中级</option><option ${r.q.level==="高级"?"selected":""}>高级</option></select></td>
+   <td class="narrow" data-field="type"><select class="cell-type">${["人物","景点","情节","诗词","文学","综合"].map(x=>`<option ${r.q.type===x?"selected":""}>${x}</option>`).join("")}</select></td>
+   <td class="qtext" data-field="q" contenteditable="true">${esc(r.q.q)}</td>
+   <td class="option" data-field="a0" contenteditable="true">${esc(r.q.a[0])}</td>
+   <td class="option" data-field="a1" contenteditable="true">${esc(r.q.a[1])}</td>
+   <td class="option" data-field="a2" contenteditable="true">${esc(r.q.a[2])}</td>
+   <td class="option" data-field="a3" contenteditable="true">${esc(r.q.a[3])}</td>
+   <td class="narrow" data-field="answer"><select class="cell-answer">${["A","B","C","D"].map((x,j)=>`<option value="${j}" ${r.q.c===j?"selected":""}>${x}</option>`).join("")}</select></td>
+   <td class="explanation" data-field="exp" contenteditable="true">${esc(r.q.exp||"")}</td>
+   <td class="narrow"><button class="btn alt row-edit" type="button">详细</button></td>
+  </tr>`).join(""):'<tr><td colspan="13">没有符合条件的题目。</td></tr>';
+ bindQuestionSheet();
+ updateSelectedCount();
+}
+function bindQuestionSheet(){
+ $("questionSheetBody").querySelectorAll("tr[data-row]").forEach(tr=>{
+   const getRecord=()=>({stage:config.stages[+tr.dataset.si],si:+tr.dataset.si,qi:+tr.dataset.qi,q:config.stages[+tr.dataset.si].questions[+tr.dataset.qi]});
+   tr.querySelectorAll('[contenteditable="true"]').forEach(td=>td.addEventListener("blur",()=>{
+     const r=getRecord(),f=td.dataset.field,v=td.textContent.trim();
+     if(f==="id")r.q.id=v||r.q.id;
+     else if(f==="q")r.q.q=v;
+     else if(f==="exp")r.q.exp=v;
+     else if(/^a[0-3]$/.test(f))r.q.a[+f.slice(1)]=v;
+     renderDashboard();markChanged("题库表格已修改。");
+   }));
+   tr.querySelector(".cell-level").addEventListener("change",e=>{getRecord().q.level=e.target.value;renderDashboard();markChanged("题目难度已修改。")});
+   tr.querySelector(".cell-type").addEventListener("change",e=>{getRecord().q.type=e.target.value;renderDashboard();markChanged("题目类型已修改。")});
+   tr.querySelector(".cell-answer").addEventListener("change",e=>{getRecord().q.c=+e.target.value;renderDashboard();markChanged("正确答案已修改。")});
+   tr.querySelector(".cell-stage").addEventListener("change",e=>{
+     const r=getRecord(),target=config.stages.find(s=>s.name===e.target.value);
+     if(!target||target===r.stage)return;
+     const moved=r.stage.questions.splice(r.qi,1)[0];target.questions.push(moved);
+     runSearch();renderDashboard();markChanged("题目所属景点已修改。");
+   });
+   tr.querySelector(".q-select").addEventListener("change",()=>{tr.classList.toggle("selected-row",tr.querySelector(".q-select").checked);updateSelectedCount()});
+   tr.querySelector(".row-edit").addEventListener("click",()=>{
+     const r=getRecord();selectedStage=r.si;selectedQuestion=r.qi;renderQuestionEditor();$("questionEditor").scrollIntoView({behavior:"smooth"});
+   });
+ });
+}
+function selectedQuestionRecords(){
+ return [...$("questionSheetBody").querySelectorAll("tr[data-row]")].filter(tr=>tr.querySelector(".q-select").checked).map(tr=>({
+   tr,si:+tr.dataset.si,qi:+tr.dataset.qi,stage:config.stages[+tr.dataset.si],q:config.stages[+tr.dataset.si].questions[+tr.dataset.qi]
+ }));
+}
+function updateSelectedCount(){
+ $("selectedCount").textContent=selectedQuestionRecords().length;
+ const visible=$("questionSheetBody").querySelectorAll("tr[data-row]").length;
+ const checked=selectedQuestionRecords().length;
+ $("headerCheck").checked=visible>0&&checked===visible;
+ $("headerCheck").indeterminate=checked>0&&checked<visible;
+}
+["qStage","qLevel","qType"].forEach(id=>$(id).addEventListener("change",runSearch));
+$("qSearchBtn").addEventListener("click",runSearch);
+$("qSearch").addEventListener("keydown",e=>{if(e.key==="Enter")runSearch()});
+$("bulkTypeBtn").addEventListener("click",()=>{
+ const rows=selectedQuestionRecords();if(!rows.length)return alert("请先勾选题目。");
+ rows.forEach(r=>r.q.type=$("bulkType").value);runSearch();renderDashboard();
+});
+$("bulkDeleteBtn").addEventListener("click",()=>{
+ const rows=selectedQuestionRecords();if(!rows.length)return alert("请先勾选题目。");
+ if(!confirm(`确定删除 ${rows.length} 道题吗？`))return;
+ const grouped={};rows.forEach(r=>(grouped[r.si]=grouped[r.si]||[]).push(r.qi));
+ Object.entries(grouped).forEach(([si,indexes])=>indexes.sort((a,b)=>b-a).forEach(qi=>config.stages[+si].questions.splice(qi,1)));
+ selectedQuestion=0;runSearch();renderDashboard();renderQuestionEditor();
+});
+$("selectAllVisibleBtn").addEventListener("click",()=>{
+ $("questionSheetBody").querySelectorAll(".q-select").forEach(x=>{x.checked=true;x.closest("tr").classList.add("selected-row")});updateSelectedCount();
+});
+$("clearSelectionBtn").addEventListener("click",()=>{
+ $("questionSheetBody").querySelectorAll(".q-select").forEach(x=>{x.checked=false;x.closest("tr").classList.remove("selected-row")});updateSelectedCount();
+});
+$("headerCheck").addEventListener("change",e=>{
+ $("questionSheetBody").querySelectorAll(".q-select").forEach(x=>{x.checked=e.target.checked;x.closest("tr").classList.toggle("selected-row",e.target.checked)});updateSelectedCount();
+});
+$("renumberBtn").addEventListener("click",()=>{
+ config.stages.forEach(stage=>stage.questions.forEach((q,i)=>q.id=`HL-${String(stage.n).padStart(2,"0")}-${String(i+1).padStart(3,"0")}`));
+ runSearch();alert("题目编号已重新生成。");
+});
+$("newQuestionBtn").addEventListener("click",()=>{
+ const stage=config.stages[selectedStage]||config.stages[0];
+ stage.questions.push({id:`HL-${String(stage.n).padStart(2,"0")}-${String(stage.questions.length+1).padStart(3,"0")}`,q:"请输入新题目",a:["选项A","选项B","选项C","选项D"],c:0,level:"初级",type:"综合",exp:""});
+ selectedQuestion=stage.questions.length-1;renderQuestionEditor();runSearch();
+});
+
+function renderQuestionEditor(){
+ const stage=config.stages[selectedStage],q=stage.questions[selectedQuestion];
+ if(!q){$("questionEditor").innerHTML="<p>请从搜索结果选择题目。</p>";return}
+ $("editorLocation").textContent=`${stage.n}. ${stage.name}｜第${selectedQuestion+1}题`;
+ $("questionEditor").innerHTML=`<div class="question-card">
+  <div class="form-grid"><label>题目编号<input id="editId" value="${esc(q.id||"")}"></label><label>所属景点<input value="${esc(stage.name)}" disabled></label></div>
+  <label>题目<textarea id="editQ" rows="3">${esc(q.q)}</textarea></label>
+  <div class="form-grid">${q.a.map((x,i)=>`<label>选项 ${String.fromCharCode(65+i)}<input id="editA${i}" value="${esc(x)}"></label>`).join("")}</div>
+  <div class="form-grid">
+   <label>正确答案<select id="editCorrect">${q.a.map((_,i)=>`<option value="${i}" ${i===q.c?"selected":""}>${String.fromCharCode(65+i)}</option>`).join("")}</select></label>
+   <label>难度<select id="editLevel"><option ${q.level==="初级"?"selected":""}>初级</option><option ${q.level==="中级"?"selected":""}>中级</option><option ${q.level==="高级"?"selected":""}>高级</option></select></label>
+   <label>类型<select id="editType">${["人物","景点","情节","诗词","文学","综合"].map(x=>`<option ${q.type===x?"selected":""}>${x}</option>`).join("")}</select></label>
+  </div>
+  <label>解析<textarea id="editExp" rows="3">${esc(q.exp||"")}</textarea></label>
+  <div class="toolbar"><button class="btn" id="saveQuestion">保存题目</button><button class="btn alt" id="deleteQuestion">删除题目</button></div>
+ </div>`;
+ $("saveQuestion").onclick=()=>{
+  q.id=$("editId").value.trim()||q.id;q.q=$("editQ").value.trim();q.a=[0,1,2,3].map(i=>$("editA"+i).value.trim());q.c=+$("editCorrect").value;
+  q.level=$("editLevel").value;q.type=$("editType").value;q.exp=$("editExp").value.trim();
+  runSearch();renderDashboard();markChanged("题目已修改。");alert("题目已保存到教师编辑器。");
+ };
+ $("deleteQuestion").onclick=()=>{
+  if(!confirm("确定删除这道题吗？"))return;stage.questions.splice(selectedQuestion,1);selectedQuestion=Math.max(0,selectedQuestion-1);
+  renderQuestionEditor();runSearch();renderDashboard();markChanged("题目已删除。");
+ };
+}
+
+const mapCanvas=$("mapCanvas"),mctx=mapCanvas.getContext("2d"),mapImg=new Image();mapImg.src="images/大观园正式地图.png";
+function loadStage(){
+ const s=config.stages[selectedStage];$("stageSelect").value=selectedStage;$("stageX").value=s.x;$("stageY").value=s.y;
+ $("stageMarkerRadius").value=s.markerRadius||14;$("stageMarkerRadiusNumber").value=s.markerRadius||14;
+ $("stageHitRadius").value=s.hitRadius||38;$("stageHitRadiusNumber").value=s.hitRadius||38;
+ $("stageNumber").value=s.n;$("stageName").value=s.name;$("stagePerson").value=s.person||"";$("stagePersonDisplay").value=s.personDisplay||"after_completion";
+ $("stageClue").value=s.clue||"";$("stageIcon").value=s.icon||"";$("stageRepair").value=s.repair||"";$("stageEffect").value=s.repairEffect||"flowers";
+}
+function drawMap(){
+ mctx.clearRect(0,0,mapCanvas.width,mapCanvas.height);
+ if(mapImg.complete&&mapImg.naturalWidth)mctx.drawImage(mapImg,0,0,mapCanvas.width,mapCanvas.height);
+ config.stages.forEach((s,i)=>{const x=s.x/100*mapCanvas.width,y=s.y/100*mapCanvas.height;
+  const markerRadius=Number(s.markerRadius||14),hitRadius=Number(s.hitRadius||38);
+  // 地图原图已有红色编号圆圈，编辑器只画透明校准轮廓。
+  if(i===selectedStage){
+    mctx.save();
+    mctx.setLineDash([8,6]);
+    mctx.beginPath();mctx.arc(x,y,hitRadius,0,Math.PI*2);
+    mctx.lineWidth=2;mctx.strokeStyle="rgba(22,91,150,.85)";mctx.stroke();
+    mctx.setLineDash([]);
+    mctx.beginPath();mctx.arc(x,y,markerRadius,0,Math.PI*2);
+    mctx.lineWidth=3;mctx.strokeStyle="rgba(255,224,80,.98)";mctx.stroke();
+    mctx.restore();
+  }else{
+    mctx.save();
+    mctx.beginPath();mctx.arc(x,y,markerRadius,0,Math.PI*2);
+    mctx.lineWidth=1.5;mctx.strokeStyle="rgba(255,255,255,.62)";mctx.stroke();
+    mctx.restore();
+  }
+ });
+}
+function canvasPoint(e){const r=mapCanvas.getBoundingClientRect();return{x:(e.clientX-r.left)*mapCanvas.width/r.width,y:(e.clientY-r.top)*mapCanvas.height/r.height}}
+mapCanvas.addEventListener("pointerdown",e=>{const p=canvasPoint(e);let best=-1,dist=999;
+ config.stages.forEach((s,i)=>{const d=Math.hypot(p.x-s.x/100*mapCanvas.width,p.y-s.y/100*mapCanvas.height);
+ const hr=Number(s.hitRadius||38);if(d<hr&&d<dist){best=i;dist=d}});
+ if(best>=0){selectedStage=best;dragging=true;loadStage();drawMap();mapCanvas.setPointerCapture(e.pointerId)}
+});
+mapCanvas.addEventListener("pointermove",e=>{if(!dragging)return;const p=canvasPoint(e),s=config.stages[selectedStage];
+ s.x=Math.max(0,Math.min(100,p.x/mapCanvas.width*100));s.y=Math.max(0,Math.min(100,p.y/mapCanvas.height*100));
+ $("stageX").value=s.x.toFixed(1);$("stageY").value=s.y.toFixed(1);drawMap();
+});
+mapCanvas.addEventListener("pointerup",()=>dragging=false);
+$("stageSelect").addEventListener("change",()=>{selectedStage=+$("stageSelect").value;loadStage();drawMap()});
+["stageX","stageY"].forEach(id=>$(id).addEventListener("input",()=>{const s=config.stages[selectedStage];s.x=+$("stageX").value;s.y=+$("stageY").value;drawMap()}));
+function syncRadiusPair(rangeId,numberId,key){
+ const apply=value=>{const s=config.stages[selectedStage];const v=+value;s[key]=v;$(rangeId).value=v;$(numberId).value=v;drawMap()};
+ $(rangeId).addEventListener("input",e=>apply(e.target.value));
+ $(numberId).addEventListener("input",e=>apply(e.target.value));
+}
+syncRadiusPair("stageMarkerRadius","stageMarkerRadiusNumber","markerRadius");
+syncRadiusPair("stageHitRadius","stageHitRadiusNumber","hitRadius");
+
+$("calibrateAllMarkersBtn").addEventListener("click",()=>{
+  if(!confirm("确定将15个卡点的可见圆圈全部校准为地图原有圆圈大小吗？"))return;
+  config.stages.forEach(stage=>{
+    stage.markerRadius=14;
+    if(!stage.hitRadius||stage.hitRadius<38)stage.hitRadius=38;
+  });
+  loadStage();
+  drawMap();
+  markChanged("全部卡点已校准为地图圆圈大小。");
+  alert("15个透明校准圈已统一为地图圆圈尺寸。");
+});
+
+$("saveStageBtn").addEventListener("click",()=>{
+ const s=config.stages[selectedStage];s.n=+$("stageNumber").value||s.n;s.x=+$("stageX").value;s.y=+$("stageY").value;
+ s.markerRadius=+$("stageMarkerRadiusNumber").value||15;s.hitRadius=+$("stageHitRadiusNumber").value||38;
+ s.name=$("stageName").value.trim();s.person=$("stagePerson").value.trim();s.personDisplay=$("stagePersonDisplay").value;
+ s.clue=$("stageClue").value.trim();s.icon=$("stageIcon").value.trim();s.repair=$("stageRepair").value.trim();s.repairEffect=$("stageEffect").value;
+ fillStageLists();loadStage();drawMap();renderDashboard();markChanged("景点资料已修改。");alert("景点资料已保存到教师编辑器。");
+});
+
+function loadKnowledge(){
+ const i=+$("knowledgeStage").value||0,s=config.stages[i],k=s.knowledgeCard||{};
+ $("knowledgeIntro").value=k.intro||"";$("knowledgeMeaning").value=k.meaning||"";$("knowledgeRepair").value=k.repairResult||"";
+}
+$("knowledgeStage").addEventListener("change",loadKnowledge);
+$("saveKnowledgeBtn").addEventListener("click",()=>{
+ const s=config.stages[+$("knowledgeStage").value];s.knowledgeCard={intro:$("knowledgeIntro").value.trim(),meaning:$("knowledgeMeaning").value.trim(),repairResult:$("knowledgeRepair").value.trim()};
+ markChanged("知识卡已修改。");alert("知识卡已保存到教师编辑器。");
+});
+
+
+function renderCharacters(){
+ config.characters=config.characters||[];
+ $("characterList").innerHTML=config.characters.length?config.characters.map((c,i)=>`<div class="result" data-ci="${i}"><b>${esc(c.name)}</b><br><small>${esc(c.stage||"未设景点")}</small></div>`).join(""):'<div class="result">尚无人物资料。</div>';
+ $("characterList").querySelectorAll("[data-ci]").forEach(el=>el.onclick=()=>{selectedCharacter=+el.dataset.ci;loadCharacter()});
+ loadCharacter();
+}
+function loadCharacter(){
+ const c=(config.characters||[])[selectedCharacter];
+ if(!c){["charName","charIcon","charImage","charIdentity","charPersonality","charStories","charPoems"].forEach(id=>$(id).value="");return}
+ $("charName").value=c.name||"";$("charStage").value=Math.max(0,config.stages.findIndex(s=>s.name===c.stage));
+ $("charIcon").value=c.icon||"";$("charImage").value=c.image||"";$("charIdentity").value=c.identity||"";
+ $("charPersonality").value=c.personality||"";$("charStories").value=c.stories||"";$("charPoems").value=c.poems||"";
+}
+$("addCharacterBtn").onclick=()=>{config.characters=config.characters||[];config.characters.push({name:"新人物",stage:config.stages[0].name,icon:"👤",image:"",identity:"",personality:"",stories:"",poems:""});selectedCharacter=config.characters.length-1;renderCharacters()};
+$("saveCharacterBtn").onclick=()=>{const c=config.characters[selectedCharacter];if(!c)return alert("请先新增人物。");c.name=$("charName").value.trim();c.stage=config.stages[+$("charStage").value].name;c.icon=$("charIcon").value.trim();c.image=$("charImage").value.trim();c.identity=$("charIdentity").value.trim();c.personality=$("charPersonality").value.trim();c.stories=$("charStories").value.trim();c.poems=$("charPoems").value.trim();renderCharacters();renderDashboard();markChanged("人物资料已修改。");alert("人物资料已保存到教师编辑器。")};
+$("deleteCharacterBtn").onclick=()=>{if(!config.characters[selectedCharacter]||!confirm("确定删除这位人物资料吗？"))return;config.characters.splice(selectedCharacter,1);selectedCharacter=Math.max(0,selectedCharacter-1);renderCharacters();renderDashboard()};
+
+function renderPoems(){
+ config.poems=config.poems||[];
+ $("poemList").innerHTML=config.poems.length?config.poems.map((p,i)=>`<div class="result" data-pi="${i}"><b>${esc(p.title)}</b><br><small>${esc(p.author||"")}｜${esc(p.relatedStage||"")}</small></div>`).join(""):'<div class="result">尚无诗词资料。</div>';
+ $("poemList").querySelectorAll("[data-pi]").forEach(el=>el.onclick=()=>{selectedPoem=+el.dataset.pi;loadPoem()});
+ loadPoem();
+}
+function loadPoem(){
+ const p=(config.poems||[])[selectedPoem];
+ if(!p){["poemTitle","poemAuthor","poemImage","poemExcerpt","poemBackground","poemMeaning"].forEach(id=>$(id).value="");return}
+ $("poemTitle").value=p.title||"";$("poemAuthor").value=p.author||"";$("poemStage").value=Math.max(0,config.stages.findIndex(s=>s.name===p.relatedStage));$("poemImage").value=p.image||"";
+ $("poemExcerpt").value=p.excerpt||"";$("poemBackground").value=p.background||"";$("poemMeaning").value=p.meaning||"";
+}
+$("addPoemBtn").onclick=()=>{config.poems=config.poems||[];config.poems.push({title:"新诗词",author:"",relatedStage:config.stages[0].name,image:"",excerpt:"",background:"",meaning:""});selectedPoem=config.poems.length-1;renderPoems()};
+$("savePoemBtn").onclick=()=>{const p=config.poems[selectedPoem];if(!p)return alert("请先新增诗词。");p.title=$("poemTitle").value.trim();p.author=$("poemAuthor").value.trim();p.relatedStage=config.stages[+$("poemStage").value].name;p.image=$("poemImage").value.trim();p.excerpt=$("poemExcerpt").value.trim();p.background=$("poemBackground").value.trim();p.meaning=$("poemMeaning").value.trim();renderPoems();renderDashboard();markChanged("诗词资料已修改。");alert("诗词资料已保存到教师编辑器。")};
+$("deletePoemBtn").onclick=()=>{if(!config.poems[selectedPoem]||!confirm("确定删除这项诗词资料吗？"))return;config.poems.splice(selectedPoem,1);selectedPoem=Math.max(0,selectedPoem-1);renderPoems();renderDashboard()};
+
+
+function fileToDataURL(file){
+ return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file)});
+}
+function previewHtml(src,alt){
+ return src?`<img src="${src}" alt="${esc(alt)}" onerror="this.parentElement.innerHTML='图片无法读取'">`:"未设置图片";
+}
+function renderImageManager(){
+ config.settings=config.settings||{};
+ $("mapImagePath").value=config.settings.mapImage||"images/大观园正式地图.png";
+ $("mapImagePreview").innerHTML=previewHtml($("mapImagePath").value,"正式地图");
+
+ config.characters=config.characters||[];
+ $("imageCharacterCount").textContent=config.characters.length;
+ $("characterImageGrid").innerHTML=config.characters.map((c,i)=>`<div class="image-item" data-character="${i}">
+  <b>${esc(c.name)}</b><small class="help">${esc(c.stage||"")}</small>
+  <div class="image-preview">${previewHtml(c.image,c.name)}</div>
+  <div class="path-line"><input class="character-image-path" value="${esc(c.image||"")}" placeholder="图片路径"><button class="btn alt save-character-image">保存</button></div>
+  <label class="btn alt upload-btn" style="margin-top:7px">选择并嵌入<input class="character-image-upload" type="file" accept="image/*" hidden></label>
+  <button class="btn alt clear-character-image" style="margin-top:7px">清除图片</button>
+ </div>`).join("");
+
+ config.poems=config.poems||[];
+ $("imagePoemCount").textContent=config.poems.length;
+ $("poemImageGrid").innerHTML=config.poems.map((p,i)=>`<div class="image-item" data-poem="${i}">
+  <b>${esc(p.title)}</b><small class="help">${esc(p.relatedStage||"")}</small>
+  <div class="image-preview">${previewHtml(p.image,p.title)}</div>
+  <div class="path-line"><input class="poem-image-path" value="${esc(p.image||"")}" placeholder="图片路径"><button class="btn alt save-poem-image">保存</button></div>
+  <label class="btn alt upload-btn" style="margin-top:7px">选择并嵌入<input class="poem-image-upload" type="file" accept="image/*" hidden></label>
+  <button class="btn alt clear-poem-image" style="margin-top:7px">清除图片</button>
+ </div>`).join("");
+ bindImageManager();
+}
+function bindImageManager(){
+ $("characterImageGrid").querySelectorAll("[data-character]").forEach(card=>{
+  const i=+card.dataset.character,input=card.querySelector(".character-image-path");
+  card.querySelector(".save-character-image").onclick=()=>{config.characters[i].image=input.value.trim();renderImageManager();renderCharacters();setImageStatus("人物图片路径已保存。")};
+  card.querySelector(".clear-character-image").onclick=()=>{config.characters[i].image="";renderImageManager();renderCharacters();setImageStatus("人物图片已清除。")};
+  card.querySelector(".character-image-upload").onchange=async e=>{const f=e.target.files[0];if(!f)return;config.characters[i].image=await fileToDataURL(f);renderImageManager();renderCharacters();setImageStatus("人物图片已嵌入。请导出 config.js。")};
+ });
+ $("poemImageGrid").querySelectorAll("[data-poem]").forEach(card=>{
+  const i=+card.dataset.poem,input=card.querySelector(".poem-image-path");
+  card.querySelector(".save-poem-image").onclick=()=>{config.poems[i].image=input.value.trim();renderImageManager();renderPoems();setImageStatus("诗词图片路径已保存。")};
+  card.querySelector(".clear-poem-image").onclick=()=>{config.poems[i].image="";renderImageManager();renderPoems();setImageStatus("诗词图片已清除。")};
+  card.querySelector(".poem-image-upload").onchange=async e=>{const f=e.target.files[0];if(!f)return;config.poems[i].image=await fileToDataURL(f);renderImageManager();renderPoems();setImageStatus("诗词图片已嵌入。请导出 config.js。")};
+ });
+}
+function setImageStatus(text){$("imageStatus").className="status good";$("imageStatus").textContent=text}
+$("refreshImagesBtn").onclick=renderImageManager;
+$("refreshFolderBackupsBtn").onclick=renderFolderBackups;
+$("saveMapImageBtn").onclick=()=>{config.settings.mapImage=$("mapImagePath").value.trim()||"images/大观园正式地图.png";renderImageManager();setImageStatus("地图路径已保存。");markChanged("地图图片已修改。")};
+$("resetMapImageBtn").onclick=()=>{config.settings.mapImage="images/大观园正式地图.png";renderImageManager();setImageStatus("已恢复默认地图。")};
+$("mapImageUpload").onchange=async e=>{const f=e.target.files[0];if(!f)return;config.settings.mapImage=await fileToDataURL(f);renderImageManager();setImageStatus("地图已嵌入 config.js。请导出并替换学生版 config.js。")};
+
+
+const AUDIO_ITEMS=[
+ {key:"bgmPath",label:"背景音乐",defaultPath:"audio/大观园柔和古典背景音乐.wav"},
+ {key:"clickSoundPath",label:"按钮点击音",defaultPath:"audio/click.wav"},
+ {key:"correctSoundPath",label:"答对音",defaultPath:"audio/correct.wav"},
+ {key:"wrongSoundPath",label:"答错音",defaultPath:"audio/wrong.wav"},
+ {key:"repairSoundPath",label:"修复完成音",defaultPath:"audio/correct.wav"}
+];
+function audioPreview(src,volume){
+ if(!src)return;
+ const a=new Audio(src);a.volume=Math.max(0,Math.min(1,volume));a.play().catch(()=>alert("此音频无法播放，请检查路径或文件格式。"));
+}
+function renderAudioManager(){
+ const s=config.settings=config.settings||{};
+ $("musicEnabledInput").checked=s.musicEnabled!==false;
+ $("soundEnabledInput").checked=s.soundEnabled!==false;
+ $("musicVolumeInput").value=Math.round(Number(s.musicVolume??.34)*100);
+ $("soundVolumeInput").value=Math.round(Number(s.soundVolume??.75)*100);
+ $("musicVolumeValue").textContent=$("musicVolumeInput").value+"%";
+ $("soundVolumeValue").textContent=$("soundVolumeInput").value+"%";
+ $("audioManagerGrid").innerHTML=AUDIO_ITEMS.map((item,i)=>`<div class="image-item" data-audio="${i}">
+  <b>${item.label}</b>
+  <label>路径<input class="audio-path" value="${esc(s[item.key]||item.defaultPath)}"></label>
+  <div class="toolbar">
+   <button class="btn alt audio-save">保存路径</button>
+   <button class="btn alt audio-preview">试听</button>
+   <label class="btn alt upload-btn">选择并嵌入<input class="audio-upload" type="file" accept="audio/*" hidden></label>
+   <button class="btn alt audio-reset">恢复默认</button>
+  </div>
+ </div>`).join("");
+ bindAudioManager();
+}
+function bindAudioManager(){
+ $("audioManagerGrid").querySelectorAll("[data-audio]").forEach(card=>{
+  const item=AUDIO_ITEMS[+card.dataset.audio],input=card.querySelector(".audio-path");
+  card.querySelector(".audio-save").onclick=()=>{config.settings[item.key]=input.value.trim()||item.defaultPath;renderAudioManager();setAudioStatus(item.label+"路径已保存。")};
+  card.querySelector(".audio-preview").onclick=()=>audioPreview(input.value.trim(),item.key==="bgmPath"?Number(config.settings.musicVolume??.34):Number(config.settings.soundVolume??.75));
+  card.querySelector(".audio-reset").onclick=()=>{config.settings[item.key]=item.defaultPath;renderAudioManager();setAudioStatus(item.label+"已恢复默认。")};
+  card.querySelector(".audio-upload").onchange=async e=>{const f=e.target.files[0];if(!f)return;config.settings[item.key]=await fileToDataURL(f);renderAudioManager();setAudioStatus(item.label+"已嵌入 config.js。")};
+ });
+}
+function setAudioStatus(text){$("audioStatus").className="status good";$("audioStatus").textContent=text}
+$("musicVolumeInput").oninput=e=>$("musicVolumeValue").textContent=e.target.value+"%";
+$("soundVolumeInput").oninput=e=>$("soundVolumeValue").textContent=e.target.value+"%";
+$("audioApplyBtn").onclick=()=>{
+ const s=config.settings=config.settings||{};
+ s.musicEnabled=$("musicEnabledInput").checked;s.soundEnabled=$("soundEnabledInput").checked;
+ s.musicVolume=+$("musicVolumeInput").value/100;s.soundVolume=+$("soundVolumeInput").value/100;
+ setAudioStatus("音乐与音效设置已保存。");markChanged("音乐与音效设置已修改。");
+};
+
+function renderStatistics(){
+ const records=allRecords(),check=checkExtended();
+ $("statTotal").textContent=records.length;$("statDuplicates").textContent=check.duplicates.length;$("statErrors").textContent=check.errors.length;
+ $("statMissingExp").textContent=check.missing.length;$("statOptionDup").textContent=check.optionDup.length;$("statAverage").textContent=(records.length/config.stages.length).toFixed(1);
+ const a=check.answerCounts,total=Math.max(1,records.length);$("statAnswers").innerHTML=["A","B","C","D"].map(k=>`<b>${k}</b>：${a[k]}（${Math.round(a[k]/total*100)}%）`).join("　");
+ $("statRows").innerHTML=config.stages.map(s=>{const q=s.questions,c=x=>q.filter(v=>v.level===x).length,t=x=>q.filter(v=>(v.type||"综合")===x).length;
+  return `<tr><td>${s.n}. ${esc(s.name)}</td><td>${q.length}</td><td>${c("初级")}</td><td>${c("中级")}</td><td>${c("高级")}</td>
+  <td>${t("人物")}</td><td>${t("景点")}</td><td>${t("情节")}</td><td>${t("诗词")}</td><td>${t("文学")}</td><td>${t("综合")}</td></tr>`}).join("");
+ const issues=[...check.errors.map(x=>"格式："+x),...check.duplicates.map(x=>"重复："+x),...check.missing.map(x=>"解析："+x),...check.optionDup.map(x=>"选项："+x)];
+ $("problemReport").className="status "+(issues.length?"warn":"good");$("problemReport").innerHTML=issues.length?issues.slice(0,80).map(x=>"• "+esc(x)).join("<br>"):"目前未发现明显题库问题。";
+}
+
+function shuffled(a){return [...a].sort(()=>Math.random()-.5)}
+function startTest(){
+ const stage=config.stages[+$("testStage").value],count=Math.min(+$("testCount").value,stage.questions.length);
+ testPool=shuffled(stage.questions).slice(0,count).map(q=>{const opts=q.a.map((x,i)=>({x,ok:i===q.c})),m=shuffled(opts);return{...q,a:m.map(v=>v.x),c:m.findIndex(v=>v.ok)}});
+ testIndex=0;testScore=0;renderTest();
+}
+function renderTest(){
+ if(testIndex>=testPool.length){$("testArea").innerHTML=`<div style="text-align:center"><h2>测试完成</h2><p>答对 ${testScore} / ${testPool.length} 题</p><button class="btn" id="again">重新测试</button></div>`;$("again").onclick=startTest;return}
+ const q=testPool[testIndex];$("testArea").innerHTML=`<span class="badge">${esc(q.level)}</span><span class="badge">${esc(q.type||"综合")}</span>
+  <h2>${esc(q.q)}</h2><div id="testAnswers"></div><div id="testFeedback"></div>`;
+ q.a.forEach((a,i)=>{const b=document.createElement("button");b.className="test-answer";b.textContent=String.fromCharCode(65+i)+". "+a;
+  b.onclick=()=>{document.querySelectorAll(".test-answer").forEach(x=>x.disabled=true);document.querySelectorAll(".test-answer")[q.c].classList.add("correct");
+   if(i===q.c){testScore++;$("testFeedback").innerHTML="✅ 正确<br>"+esc(q.exp||"")}else{b.classList.add("wrong");$("testFeedback").innerHTML="❌ 正确答案："+esc(q.a[q.c])+"<br>"+esc(q.exp||"")}
+   const n=document.createElement("button");n.className="btn";n.textContent=testIndex===testPool.length-1?"查看结果":"下一题";n.onclick=()=>{testIndex++;renderTest()};$("testFeedback").appendChild(document.createElement("br"));$("testFeedback").appendChild(n);
+  };$("testAnswers").appendChild(b);
+ });
+}
+$("startTestBtn").addEventListener("click",startTest);
+
+
+function loadAppearance(){
+  const s=config.settings=config.settings||{};
+  $("appearanceTitleText").value=s.repairTitleText||"✓ {stage}修复完成";
+  $("appearanceTitleSize").value=s.repairTitleFontSize||16;
+  $("appearanceTitleSizeNumber").value=s.repairTitleFontSize||16;
+  $("appearanceTitleColor").value=s.repairTitleColor||"#FFE7A3";
+  $("appearanceTitlePosition").value=s.repairTitlePosition||"top";
+  $("appearanceOpacity").value=Math.round(Number(s.repairTitleOpacity??.92)*100);
+  $("appearanceOpacityValue").textContent=$("appearanceOpacity").value+"%";
+  $("appearanceDuration").value=s.repairTitleDuration||1500;
+  $("appearanceFade").value=s.repairTitleFade||700;
+  appearanceStageIndex=Math.max(0,Math.min(config.stages.length-1,appearanceStageIndex||0));
+  renderAppearanceStageList();
+  loadStageAppearance();
+}
+function updateAppearancePreview(){
+  const el=$("appearancePreviewTitle");
+  const stageIndex=appearanceStageIndex||0;
+  const stage=config.stages[stageIndex]||{name:"潇湘馆"};
+  const template=($("appearanceStageTitle").value||$("appearanceTitleText").value||"✓ {stage}修复完成");
+  const text=template.replaceAll("{stage}",stage.name);
+  const subline=$("appearanceStageLine").value||"";
+  const size=+$("appearanceTitleSizeNumber").value||16;
+  const color=$("appearanceTitleColor").value||"#FFE7A3";
+  const opacity=(+$("appearanceOpacity").value||92)/100;
+  const pos=$("appearanceTitlePosition").value||"top";
+  el.innerHTML='<div>'+esc(text)+'</div>'+(subline?'<div style="font-size:.72em;font-weight:500;margin-top:3px;opacity:.88">'+esc(subline)+'</div>':'');
+  el.style.fontSize=size+"px";
+  el.style.color=color;
+  el.style.opacity=opacity;
+  const preview=$("appearancePreviewStage");
+  const stageX=(Number(stage.x)||50)/100*preview.clientWidth;
+  const stageY=(Number(stage.y)||50)/100*preview.clientHeight;
+  $("appearancePreviewPoint").style.left=stageX+"px";
+  $("appearancePreviewPoint").style.top=stageY+"px";
+  const offsetX=+$("appearancePromptOffsetXNumber").value||0;
+  const offsetY=Number($("appearancePromptOffsetYNumber").value||-85);
+  el.className="repair-title-toast show";
+  requestAnimationFrame(()=>{
+    el.style.left=Math.max(8,Math.min(preview.clientWidth-el.offsetWidth-8,stageX-el.offsetWidth/2+offsetX))+"px";
+    el.style.top=Math.max(8,Math.min(preview.clientHeight-el.offsetHeight-8,stageY+offsetY))+"px";
+    el.style.bottom="auto";
+    el.style.transform="none";
+  });
+}
+function syncAppearanceSize(value){$("appearanceTitleSize").value=value;$("appearanceTitleSizeNumber").value=value;updateAppearancePreview();}
+$("appearanceTitleSize").addEventListener("input",e=>syncAppearanceSize(e.target.value));
+$("appearanceTitleSizeNumber").addEventListener("input",e=>syncAppearanceSize(e.target.value));
+["appearanceTitleText","appearanceTitleColor","appearanceTitlePosition","appearanceOpacity"].forEach(id=>{
+  $(id).addEventListener("input",()=>{if(id==="appearanceOpacity")$("appearanceOpacityValue").textContent=$(id).value+"%";updateAppearancePreview();});
+});
+$("saveAppearanceBtn").onclick=()=>{
+  const s=config.settings=config.settings||{};
+  s.repairTitleText=$("appearanceTitleText").value.trim()||"✓ {stage}修复完成";
+  s.repairTitleFontSize=+$("appearanceTitleSizeNumber").value||16;
+  s.repairTitleColor=$("appearanceTitleColor").value||"#FFE7A3";
+  s.repairTitlePosition=$("appearanceTitlePosition").value||"top";
+  s.repairTitleOpacity=(+$("appearanceOpacity").value||92)/100;
+  s.repairTitleDuration=+$("appearanceDuration").value||1500;
+  s.repairTitleFade=+$("appearanceFade").value||700;
+  markChanged("游戏外观已修改。");
+  alert("修复完成标题设置已保存到教师编辑器。");
+};
+$("resetAppearanceBtn").onclick=()=>{
+  $("appearanceTitleText").value="✓ {stage}修复完成";
+  $("appearanceTitleSize").value=16;$("appearanceTitleSizeNumber").value=16;
+  $("appearanceTitleColor").value="#FFE7A3";$("appearanceTitlePosition").value="top";
+  $("appearanceOpacity").value=92;$("appearanceOpacityValue").textContent="92%";
+  $("appearanceDuration").value=1500;$("appearanceFade").value=700;updateAppearancePreview();
+};
+
+
+let appearanceStageIndex=0;
+function renderAppearanceStageList(){
+  const list=$("appearanceStageList");
+  if(!list)return;
+  list.innerHTML=config.stages.map((st,i)=>`
+    <button type="button" class="stage-prompt-btn ${i===appearanceStageIndex?"active":""}" data-stage-index="${i}">
+      ${st.n}. ${esc(st.name)}
+    </button>`).join("");
+  list.querySelectorAll("[data-stage-index]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      appearanceStageIndex=+btn.dataset.stageIndex;
+      loadStageAppearance();
+    });
+  });
+}
+function loadStageAppearance(){
+  const st=config.stages[appearanceStageIndex]||config.stages[0];
+  if(!st)return;
+  $("appearanceSelectedStageName").textContent=`${st.n}. ${st.name}`;
+  $("appearanceStageTitle").value=st.completionTitle||"";
+  $("appearanceStageLine").value=st.completionLine||"";
+  $("appearancePromptOffsetX").value=Number(st.promptOffsetX||0);
+  $("appearancePromptOffsetXNumber").value=Number(st.promptOffsetX||0);
+  $("appearancePromptOffsetY").value=Number(st.promptOffsetY??-85);
+  $("appearancePromptOffsetYNumber").value=Number(st.promptOffsetY??-85);
+  renderAppearanceStageList();
+  updateAppearancePreview();
+}
+$("appearanceStageTitle").addEventListener("input",updateAppearancePreview);
+$("appearanceStageLine").addEventListener("input",updateAppearancePreview);
+
+$("saveStageAppearanceBtn").onclick=()=>{
+  const st=config.stages[appearanceStageIndex];
+  if(!st)return alert("请先选择一个地点。");
+  st.completionTitle=$("appearanceStageTitle").value.trim();
+  st.completionLine=$("appearanceStageLine").value.trim();
+  st.promptOffsetX=+$("appearancePromptOffsetXNumber").value||0;
+  st.promptOffsetY=Number($("appearancePromptOffsetYNumber").value||-85);
+  markChanged("景点专属提示与位置已修改。");
+  renderAppearanceStageList();
+  updateAppearancePreview();
+  alert(st.name+"的修复提示已保存到教师编辑器。");
+};
+
+function syncPromptOffset(rangeId,numberId){
+  const apply=value=>{
+    $(rangeId).value=value;
+    $(numberId).value=value;
+    updateAppearancePreview();
+  };
+  $(rangeId).addEventListener("input",e=>apply(e.target.value));
+  $(numberId).addEventListener("input",e=>apply(e.target.value));
+}
+syncPromptOffset("appearancePromptOffsetX","appearancePromptOffsetXNumber");
+syncPromptOffset("appearancePromptOffsetY","appearancePromptOffsetYNumber");
+$("resetPromptPositionBtn").onclick=()=>{
+  const st=config.stages[appearanceStageIndex];
+  if(!st)return;
+  st.promptOffsetX=0;
+  st.promptOffsetY=-85;
+  $("appearancePromptOffsetX").value=0;
+  $("appearancePromptOffsetXNumber").value=0;
+  $("appearancePromptOffsetY").value=-85;
+  $("appearancePromptOffsetYNumber").value=-85;
+  markChanged("景点提示位置已恢复默认。");
+  updateAppearancePreview();
+};
+
+$("clearStageAppearanceBtn").onclick=()=>{
+  const st=config.stages[appearanceStageIndex];
+  if(!st)return alert("请先选择一个地点。");
+  st.completionTitle="";
+  st.completionLine="";
+  $("appearanceStageTitle").value="";
+  $("appearanceStageLine").value="";
+  markChanged("景点专属提示已清除。");
+  renderAppearanceStageList();
+  updateAppearancePreview();
+};
+
+
+function loadSettings(){
+ const s=config.settings||{};$("setQuestions").value=s.questionsPerStage??5;$("setScore").value=s.scorePerCorrect??10;$("setCoins").value=s.coinsPerCorrect??20;
+ $("setClearScore").value=s.firstClearScore??50;$("setClearCoins").value=s.firstClearCoins??100;$("setAnimation").value=(s.repairAnimationDuration||6500)/1000;
+ $("setPractice").checked=s.allowPractice!==false;$("setPracticeRewards").checked=!!s.practiceRewards;$("setAutoNext").checked=s.autoNextStage!==false;
+ $("setBrightness").checked=s.progressiveBrightness!==false;$("setFlower").checked=s.flowerEffects!==false;$("setFinal").checked=s.finalCelebration!==false;$("setStatusPanel").checked=s.showStatusPanel!==false;$("setNextHint").checked=s.showNextStageHint!==false;
+}
+$("saveSettingsBtn").addEventListener("click",()=>{
+ const s=config.settings=config.settings||{};s.questionsPerStage=+$("setQuestions").value||5;s.scorePerCorrect=+$("setScore").value||0;s.coinsPerCorrect=+$("setCoins").value||0;
+ s.firstClearScore=+$("setClearScore").value||0;s.firstClearCoins=+$("setClearCoins").value||0;s.repairAnimationDuration=Math.round((+$("setAnimation").value||6.5)*1000);
+ s.allowPractice=$("setPractice").checked;s.practiceRewards=$("setPracticeRewards").checked;s.autoNextStage=$("setAutoNext").checked;
+ s.progressiveBrightness=$("setBrightness").checked;s.flowerEffects=$("setFlower").checked;s.finalCelebration=$("setFinal").checked;s.showStatusPanel=$("setStatusPanel").checked;s.showNextStageHint=$("setNextHint").checked;
+ $("settingsStatus").className="status good";$("settingsStatus").textContent="设置已保存到教师编辑器。";markChanged("游戏设置已修改。");
+});
+
+$("browserSaveBtn").onclick=$("browserSaveDataBtn").onclick=()=>persistSharedConfig("全部资料已保存并同步。",true);
+$("clearSharedDataBtn").onclick=()=>{
+  if(!confirm("确定清除浏览器同步资料吗？学生版将恢复读取 config.js。"))return;
+  localStorage.removeItem(SHARED_CONFIG_KEY);
+  if(configChannel)configChannel.postMessage({type:"config-updated",time:Date.now()});
+  alert("浏览器同步资料已清除。");
+};
+$("chooseConfigBtn").onclick=$("dataChooseConfigBtn").onclick=chooseConfigFile;
+$("directSaveBtn").onclick=$("dataDirectSaveBtn").onclick=()=>directSaveConfig(false);
+$("autoSaveInput").addEventListener("change",()=>{
+  localStorage.setItem("gardenTeacherAutoSave",$("autoSaveInput").checked?"1":"0");
+  if($("autoSaveInput").checked)markChanged("自动保存已开启。");
+});
+$("previewStudentBtn").onclick=()=>window.open("学生版.html","_blank");
+$("publishBtn").onclick=$("exportConfig").onclick=()=>download("config.js","const GAME_CONFIG = "+JSON.stringify(config,null,2)+";\n","text/javascript");
+$("excelExport").onclick=()=>ExcelIO.exportConfigAsExcel(config,"梦回大观园_题库导出.xls");
+$("checkBank").onclick=()=>{showPage("statistics");renderStatistics()};
+$("excelImport").addEventListener("change",async e=>{
+ const f=e.target.files[0];if(!f)return;$("dataStatus").textContent="正在读取 Excel……";
+ try{const rows=await ExcelIO.readQuestionRows(f),report=ExcelIO.applyRowsToConfig(rows,config);fillStageLists();renderDashboard();runSearch();
+ $("dataStatus").className="status good";$("dataStatus").textContent=`Excel导入完成：成功 ${report.imported}，略过 ${report.skipped}，错误 ${report.errors.length}，疑似重复 ${report.duplicates.length}`;}
+ catch(err){$("dataStatus").className="status bad";$("dataStatus").textContent="导入失败："+(err.message||err)}e.target.value="";
+});
+$("backupJson").onclick=()=>download("梦回大观园_完整备份.json",JSON.stringify(config,null,2),"application/json");
+$("restoreJson").addEventListener("change",async e=>{createBackup("恢复JSON前备份",true);const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());if(!Array.isArray(x.stages))throw new Error("缺少stages资料");
+ config=x;selectedStage=0;selectedQuestion=0;fillStageLists();loadStage();loadKnowledge();loadAppearance();loadSettings();renderDashboard();runSearch();$("dataStatus").textContent="备份恢复成功。";persistSharedConfig("恢复的资料已同步。",false);}
+ catch(err){$("dataStatus").textContent="恢复失败："+(err.message||err)}e.target.value=""});
+$("exportTxt").onclick=()=>{
+ const lines=[];config.stages.forEach(s=>{lines.push(`第${s.n}关｜${s.name}`);s.questions.forEach((q,i)=>{lines.push(`${i+1}. ${q.q}`);q.a.forEach((a,j)=>lines.push(`   ${String.fromCharCode(65+j)}. ${a}`));lines.push(`   答案：${String.fromCharCode(65+q.c)}. ${q.a[q.c]}`);lines.push(`   解析：${q.exp||""}\n`)})});
+ download("梦回大观园_题库.txt",lines.join("\n"));
+};
+$("exportStudent").onclick=async()=>{
+ try{let text=await (await fetch("学生版.html")).text();text=text.replace('<script src="config.js"><'+'/script>','<script>const GAME_CONFIG = '+JSON.stringify(config)+';<'+'/script>');
+ download("学生版_已更新.html",text,"text/html;charset=utf-8");$("dataStatus").textContent="已导出内置最新题库的学生版HTML。";}
+ catch(err){$("dataStatus").textContent="浏览器限制读取本地文件，请改用导出 config.js。"}
+};
+$("clearStudentSave").onclick=()=>{if(confirm("确定清除当前浏览器的学生闯关存档吗？")){localStorage.removeItem("gardenCanvasStudent");$("dataStatus").textContent="学生存档已清除。"}};
+$("resetEditor").onclick=()=>{if(!confirm("确定恢复初始资料吗？"))return;createBackup("恢复初始资料前备份",true);config=JSON.parse(JSON.stringify(INITIAL_CONFIG));selectedStage=0;selectedQuestion=0;fillStageLists();loadStage();loadKnowledge();loadAppearance();loadSettings();renderDashboard();runSearch();$("dataStatus").textContent="已恢复初始资料。"};
+
+mapImg.onload=drawMap;
+$("autoSaveInput").checked=localStorage.getItem("gardenTeacherAutoSave")==="1";
+if(localStorage.getItem(BACKUP_ENABLED_KEY)===null)localStorage.setItem(BACKUP_ENABLED_KEY,"1");
+if(localStorage.getItem(BACKUP_LIMIT_KEY)===null)localStorage.setItem(BACKUP_LIMIT_KEY,"20");
+lastBackupSignature=configSignature();
+checkDesktopService();
+fillStageLists();loadStage();loadKnowledge();loadAppearance();loadSettings();renderDashboard();runSearch();renderQuestionEditor();renderCharacters();renderPoems();renderImageManager();renderAudioManager();
+</script>
+</body>
+</html>
