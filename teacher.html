@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -100,9 +100,30 @@ small.help{display:block;color:#765e50;margin-top:4px}
 @media(max-width:800px){.stage-prompt-layout{grid-template-columns:1fr}.stage-prompt-list{max-height:260px}}
 
 .player-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:12px 0}.player-toolbar label{min-width:150px}.player-toolbar input,.player-toolbar select{min-width:150px}.cloud-kpis{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:10px;margin:12px 0}.cloud-kpi{background:#fff8e8;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}.cloud-kpi b{display:block;font-size:24px;color:#8d3d31;margin-top:4px}.cloud-note{background:#fff3cd;border:1px solid #e6c867;border-radius:10px;padding:10px 12px;margin:10px 0}.player-table td,.player-table th{white-space:nowrap}.player-table td.namecell{font-weight:700;color:#6f3028}.player-empty{text-align:center;padding:28px;color:#777}@media(max-width:900px){.cloud-kpis{grid-template-columns:repeat(2,1fr)}}
+
+
+/* 教师登录保护：正式验证由 Vercel /api/teacher-login 完成 */
+body:not(.admin-authenticated) .admin-shell{display:none}
+#teacherLoginGate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(rgba(238,228,212,.96),rgba(238,228,212,.96)),url('images/大观园正式地图.png') center/cover fixed}
+body.admin-authenticated #teacherLoginGate{display:none}
+.teacher-login-card{width:min(460px,94vw);background:#fffaf0;border:2px solid #dcc39c;border-radius:22px;padding:28px;box-shadow:0 18px 55px rgba(72,42,28,.22);text-align:center}
+.teacher-login-card h1{margin:0 0 8px;color:#8d3d31}.teacher-login-card p{color:#765e50;line-height:1.7}.teacher-login-card input{font-size:18px;text-align:center;letter-spacing:.08em;margin:10px 0}.teacher-login-card .btn{width:100%;padding:12px}.teacher-login-error{min-height:24px;color:#a52f2f;font-weight:700;margin-top:8px}.teacher-login-note{font-size:13px;background:#fff3cd;border:1px solid #e6c867;border-radius:10px;padding:10px;margin-top:14px;text-align:left}
+#teacherLogoutBtn{background:#6b554a;color:#fff;border:none;border-radius:10px;padding:9px 13px;font-weight:700;cursor:pointer}
+
 </style>
 </head>
 <body>
+<div id="teacherLoginGate">
+  <div class="teacher-login-card">
+    <div style="font-size:46px">🔐</div>
+    <h1>教师管理中心</h1>
+    <p>请输入教师管理密码。验证成功后才能进入后台及读取云端玩家资料。</p>
+    <input id="teacherAdminPassword" type="password" autocomplete="current-password" placeholder="教师管理密码">
+    <button class="btn" id="teacherLoginBtn">登录教师后台</button>
+    <div class="teacher-login-error" id="teacherLoginError"></div>
+    <div class="teacher-login-note">密码不会写进网页源码；验证由 Vercel 服务器端完成。本次登录仅保存在当前浏览器分页会话中。</div>
+  </div>
+</div>
 <div class="admin-shell">
 <header class="admin-header">
  <div>
@@ -112,6 +133,7 @@ small.help{display:block;color:#765e50;margin-top:4px}
  <div class="header-actions">
   <button class="btn" id="browserSaveBtn">💾 保存并同步学生版</button><button class="btn" id="directSaveBtn">💾 写入 config.js</button><button class="btn alt" id="chooseConfigBtn">📂 选择 config.js</button><button class="btn" id="previewStudentBtn">👁 预览学生版</button>
   <button class="btn" id="publishBtn">📦 导出 config.js</button>
+  <button id="teacherLogoutBtn" type="button">退出后台</button>
  </div>
 </header>
 <div id="directSaveStatus" class="status" style="margin-top:12px">
@@ -875,14 +897,35 @@ $("backupLimitInput").onchange=e=>{
 
 function allRecords(){const out=[];config.stages.forEach((stage,si)=>stage.questions.forEach((q,qi)=>out.push({stage,si,q,qi})));return out}
 
-const CLOUD_SUPABASE_URL="https://cyznvvdxgcpikwsxkegt.supabase.co";
-const CLOUD_SUPABASE_KEY="sb_publishable_x8wLI_teqa54LX7X_NBzRw_JcfOC9NT";
-let cloudPlayerRows=[];
-async function cloudFetch(path){
- const r=await fetch(CLOUD_SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:CLOUD_SUPABASE_KEY,Authorization:"Bearer "+CLOUD_SUPABASE_KEY}});
- if(!r.ok)throw new Error((await r.text())||("HTTP "+r.status));
- return r.json();
+const TEACHER_SESSION_KEY="dreamGardenTeacherSessionV1";
+let teacherSessionToken=sessionStorage.getItem(TEACHER_SESSION_KEY)||"";
+async function adminApi(path,options={}){
+ const headers={...(options.headers||{})};
+ if(teacherSessionToken)headers.Authorization="Bearer "+teacherSessionToken;
+ const r=await fetch(path,{...options,headers});
+ const text=await r.text();
+ let data=null;try{data=text?JSON.parse(text):null}catch(e){data={error:text}}
+ if(r.status===401){teacherSessionToken="";sessionStorage.removeItem(TEACHER_SESSION_KEY);document.body.classList.remove('admin-authenticated');throw new Error('教师登录已失效，请重新登录。')}
+ if(!r.ok)throw new Error(data?.error||('HTTP '+r.status));
+ return data;
 }
+async function cloudFetch(){
+ return adminApi('/api/admin-players');
+}
+function setTeacherAuthenticated(ok){document.body.classList.toggle('admin-authenticated',!!ok)}
+async function teacherLogin(){
+ const pass=document.getElementById('teacherAdminPassword').value;
+ const err=document.getElementById('teacherLoginError');
+ const btn=document.getElementById('teacherLoginBtn');
+ if(!pass){err.textContent='请输入教师管理密码。';return}
+ err.textContent='正在验证……';btn.disabled=true;
+ try{
+  const data=await adminApi('/api/teacher-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+  teacherSessionToken=data.token;sessionStorage.setItem(TEACHER_SESSION_KEY,teacherSessionToken);document.getElementById('teacherAdminPassword').value='';err.textContent='';setTeacherAuthenticated(true);
+ }catch(e){err.textContent=e.message||'登录失败。'}finally{btn.disabled=false}
+}
+function teacherLogout(){teacherSessionToken='';sessionStorage.removeItem(TEACHER_SESSION_KEY);setTeacherAuthenticated(false);document.getElementById('teacherLoginError').textContent='已退出教师后台。'}
+let cloudPlayerRows=[];
 function completedCount(v){
  if(Array.isArray(v))return v.filter(Boolean).length;
  if(v&&typeof v==='object')return Object.values(v).filter(Boolean).length;
@@ -920,7 +963,7 @@ function renderCloudPlayers(){
 async function loadCloudPlayers(){
  const st=document.getElementById('playerCloudStatus');if(st)st.textContent='正在读取 Supabase 云端资料……';
  try{
-  const [players,progress]=await Promise.all([cloudFetch('players?select=*&order=created_at.desc'),cloudFetch('player_progress?select=*')]);
+  const data=await cloudFetch();const players=data.players||[],progress=data.progress||[];
   cloudPlayerRows=mergeCloudPlayers(players,progress);renderCloudPlayers();
   if(st)st.textContent=`已读取 ${players.length} 位玩家；其中 ${progress.length} 位已有云端游戏进度。最后刷新：${new Date().toLocaleTimeString('zh-CN',{hour12:false})}`;
  }catch(e){if(st)st.textContent='读取失败：'+e.message;console.error(e)}
@@ -932,6 +975,13 @@ function exportCloudPlayersCsv(){
  const lines=[head, ...rows.map(x=>{const g=x._progress||{};return [x.role==='student'?'学生':'教职员',x.name,x.class_name||x.department||'',x.external_id,x.avatar||'',g.score||0,g.coins||0,g.correct||0,g.wrong||0,g.answered||0,x._completed,formatCloudTime(x._last)]})].map(r=>r.map(csvCell).join(','));
  const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='梦回大观园_玩家进度_'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
 }
+document.getElementById('teacherLoginBtn').addEventListener('click',teacherLogin);
+document.getElementById('teacherAdminPassword').addEventListener('keydown',e=>{if(e.key==='Enter')teacherLogin()});
+document.getElementById('teacherLogoutBtn').addEventListener('click',teacherLogout);
+if(teacherSessionToken){
+ adminApi('/api/admin-players').then(()=>setTeacherAuthenticated(true)).catch(()=>setTeacherAuthenticated(false));
+}else setTeacherAuthenticated(false);
+
 setTimeout(()=>{
  const rb=document.getElementById('refreshPlayersBtn');if(rb)rb.onclick=loadCloudPlayers;
  const eb=document.getElementById('exportPlayersCsvBtn');if(eb)eb.onclick=exportCloudPlayersCsv;
