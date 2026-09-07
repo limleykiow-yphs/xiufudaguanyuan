@@ -466,7 +466,7 @@ function cloudSaveProgressSoon(){
 }
 async function cloudSaveProgress(){
   if(!playerProfile?.dbId)return;
-  const payload={player_id:playerProfile.dbId,score:state.score||0,coins:state.coins||0,correct:state.correct||0,wrong:state.wrong||0,answered:state.answered||0,combo:state.combo||0,best_combo:state.bestCombo||0,completed:state.completed||{},updated_at:new Date().toISOString()};
+  const payload={player_id:playerProfile.dbId,score:state.score||0,coins:state.coins||0,correct:state.correct||0,wrong:state.wrong||0,answered:state.answered||0,combo:state.combo||0,best_combo:state.bestCombo||0,completed:state.completed||{},stage_records:state.stageRecords||{},updated_at:new Date().toISOString()};
   try{
     const rows=await cloudRequest(`player_progress?select=id&player_id=eq.${playerProfile.dbId}&limit=1`);
     if(rows&&rows.length)await cloudRequest(`player_progress?player_id=eq.${playerProfile.dbId}`,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)});
@@ -1293,11 +1293,42 @@ function renderStats(){
   if(d===STAGES.length)setTimeout(showResult,300);
 }
 function openStage(s){
-  current=s;stageAnswered=0;
-  pool=shuffle(s.questions).slice(0,Math.min(5,s.questions.length)).map(shuffleQuestion);
-  idx=0;
-  stageScore=0;stageCoins=0;stageCorrect=0;stageCombo=0;stageBestCombo=0;
+  current=s;
+  state.stageRecords=state.stageRecords||{};
+  const savedRound=!practiceMode ? state.stageRecords.__activeRound : null;
+  if(savedRound && savedRound.stageName===s.name && !state.completed[s.name] && Array.isArray(savedRound.pool) && savedRound.pool.length){
+    pool=savedRound.pool;
+    idx=Math.max(0,Math.min(Number(savedRound.nextIndex||0),pool.length));
+    stageAnswered=Number(savedRound.stageAnswered||idx||0);
+    stageScore=Number(savedRound.stageScore||0);
+    stageCoins=Number(savedRound.stageCoins||0);
+    stageCorrect=Number(savedRound.stageCorrect||0);
+    stageCombo=Number(savedRound.stageCombo||0);
+    stageBestCombo=Number(savedRound.stageBestCombo||0);
+    if(idx>=pool.length){
+      finishCurrentStage();
+      return;
+    }
+  }else{
+    stageAnswered=0;
+    pool=shuffle(s.questions).slice(0,Math.min(5,s.questions.length)).map(shuffleQuestion);
+    idx=0;
+    stageScore=0;stageCoins=0;stageCorrect=0;stageCombo=0;stageBestCombo=0;
+    if(!practiceMode){
+      state.stageRecords.__activeRound={stageName:s.name,pool:pool,nextIndex:0,stageAnswered:0,stageScore:0,stageCoins:0,stageCorrect:0,stageCombo:0,stageBestCombo:0,updated:new Date().toISOString()};
+      save();
+    }
+  }
   quizModal.classList.add("show");showQuestion();
+}
+function persistActiveRound(nextIndex){
+  if(practiceMode||!current)return;
+  state.stageRecords=state.stageRecords||{};
+  state.stageRecords.__activeRound={
+    stageName:current.name,pool:pool,nextIndex:nextIndex,
+    stageAnswered:stageAnswered,stageScore:stageScore,stageCoins:stageCoins,stageCorrect:stageCorrect,
+    stageCombo:stageCombo,stageBestCombo:stageBestCombo,updated:new Date().toISOString()
+  };
 }
 function showQuestion(){
   answered=false;nextBtn.classList.add("hidden");
@@ -1370,16 +1401,14 @@ function choose(i,b){
     if(!practiceMode || SETTINGS.practiceRewards) showReward("连击中断");
   }
 
+  persistActiveRound(idx+1);
   save();
   quizBar.style.width=((idx+1)/pool.length*100)+"%";
   nextBtn.classList.remove("hidden");
   nextBtn.textContent=idx===pool.length-1?"完成本关":"下一题";
   renderStats();
 }
-nextBtn.addEventListener("click",()=>{
-  playClick();
-  if(idx<pool.length-1){idx++;showQuestion();}
-  else{
+function finishCurrentStage(){
     if(practiceMode){
       save();
       quizModal.classList.remove("show");
@@ -1411,6 +1440,7 @@ nextBtn.addEventListener("click",()=>{
     }
     state.completed[current.name]=true;
     state.stageRecords=state.stageRecords||{};
+    delete state.stageRecords.__activeRound;
     state.stageRecords[current.name]={
       completed:true,
       lastScore:stageScore,
@@ -1446,7 +1476,12 @@ nextBtn.addEventListener("click",()=>{
       settlementModal.classList.add("show");
     });
     renderStats();
-  }
+
+}
+nextBtn.addEventListener("click",()=>{
+  playClick();
+  if(idx<pool.length-1){idx++;showQuestion();}
+  else finishCurrentStage();
 });
 closeQuiz.addEventListener("click",()=>{quizModal.classList.remove("show")});
 practiceBtn.addEventListener("click",()=>{
