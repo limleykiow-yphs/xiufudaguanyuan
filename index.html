@@ -442,14 +442,26 @@ async function cloudLoginOrRegister(p,pin){
   const made=await cloudRequest("players",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)});
   return {...p,dbId:made[0].id};
 }
-async function cloudLoadProgress(){
-  if(!playerProfile?.dbId)return null;
-  const rows=await cloudRequest(`player_progress?select=*&player_id=eq.${playerProfile.dbId}&limit=1`);
+async function cloudLoadProgressFor(playerId){
+  if(!playerId)return null;
+  const rows=await cloudRequest(`player_progress?select=*&player_id=eq.${playerId}&limit=1`);
   return rows&&rows[0]||null;
 }
+async function cloudLoadProgress(){
+  return cloudLoadProgressFor(playerProfile?.dbId);
+}
+function stateFromCloud(r,base={}){
+  return {
+    ...base,
+    score:r?.score??0, coins:r?.coins??0, correct:r?.correct??0, wrong:r?.wrong??0, answered:r?.answered??0,
+    combo:r?.combo??0, bestCombo:r?.best_combo??0, completed:r?.completed??{},
+    stageRecords:r?.stage_records??base.stageRecords??{}, music:base.music??true
+  };
+}
 let cloudSaveTimer=null;
+let cloudProgressReady=false;
 function cloudSaveProgressSoon(){
-  if(!playerProfile?.dbId)return;
+  if(!playerProfile?.dbId || !cloudProgressReady)return;
   clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(cloudSaveProgress,450);
 }
 async function cloudSaveProgress(){
@@ -1603,8 +1615,15 @@ playerProfileForm.addEventListener("submit",async e=>{
   profileError.textContent="正在连接云端资料……";
   try{
     p=await cloudLoginOrRegister(p,pin);
-    // 本机只保存玩家资料，不再保存 PIN 明文。
-    playerProfile=p;localStorage.setItem(PLAYER_PROFILE_KEY,JSON.stringify(p));
+    // 登录成功后先从云端读取该玩家进度，再进入地图。这样可避免 0 分初始状态覆盖云端旧进度。
+    const remote=await cloudLoadProgressFor(p.dbId);
+    playerProfile=p;
+    localStorage.setItem(PLAYER_PROFILE_KEY,JSON.stringify(p));
+    const localKey="gardenCanvasStudent::"+profileIdentityKey(p);
+    if(remote){
+      const previous=(()=>{try{return JSON.parse(localStorage.getItem(localKey)||"null")}catch(e){return null}})()||{};
+      localStorage.setItem(localKey,JSON.stringify(stateFromCloud(remote,previous)));
+    }
     location.reload();
   }catch(err){
     console.error(err);
@@ -1615,8 +1634,17 @@ switchPlayerBtn.addEventListener("click",()=>{
   if(confirm("要返回资料登记页面切换玩家吗？目前玩家的游戏进度会保留在这台设备。")){localStorage.removeItem(PLAYER_PROFILE_KEY);location.reload();}
 });
 setRole("student");renderPlayerEntry();
-// 登录后从云端恢复进度；云端有记录时以云端为准，同时保留本机离线能力。
-if(playerProfile?.dbId){cloudLoadProgress().then(r=>{if(r){state={...state,score:r.score??state.score,coins:r.coins??state.coins,correct:r.correct??state.correct,wrong:r.wrong??state.wrong,answered:r.answered??state.answered,combo:r.combo??state.combo,bestCombo:r.best_combo??state.bestCombo,completed:r.completed??state.completed};localStorage.setItem(stateStorageKey(),JSON.stringify(state));renderStats();drawMap();}}).catch(e=>console.warn("云端进度读取失败，将使用本机存档：",e));}
+// 登录后再次以云端记录校准本机状态。校准完成前暂停云端写入，避免初始 0 分覆盖已有进度。
+if(playerProfile?.dbId){
+  cloudLoadProgress().then(r=>{
+    if(r){
+      state=stateFromCloud(r,state);
+      localStorage.setItem(stateStorageKey(),JSON.stringify(state));
+      renderStats();drawMap();
+    }
+  }).catch(e=>console.warn("云端进度读取失败，将使用本机存档：",e))
+    .finally(()=>{cloudProgressReady=true;});
+}else{cloudProgressReady=true;}
 
 mapImage.onload=()=>{resizeCanvas();renderStats();animationLoop();};
 window.addEventListener("resize",drawMap);
