@@ -98,6 +98,8 @@ small.help{display:block;color:#765e50;margin-top:4px}
 .stage-prompt-btn.active{background:#8d3d31;color:#fff;border-color:#8d3d31}
 .stage-prompt-editor{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
 @media(max-width:800px){.stage-prompt-layout{grid-template-columns:1fr}.stage-prompt-list{max-height:260px}}
+
+.player-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:12px 0}.player-toolbar label{min-width:150px}.player-toolbar input,.player-toolbar select{min-width:150px}.cloud-kpis{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:10px;margin:12px 0}.cloud-kpi{background:#fff8e8;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}.cloud-kpi b{display:block;font-size:24px;color:#8d3d31;margin-top:4px}.cloud-note{background:#fff3cd;border:1px solid #e6c867;border-radius:10px;padding:10px 12px;margin:10px 0}.player-table td,.player-table th{white-space:nowrap}.player-table td.namecell{font-weight:700;color:#6f3028}.player-empty{text-align:center;padding:28px;color:#777}@media(max-width:900px){.cloud-kpis{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -118,6 +120,7 @@ small.help{display:block;color:#765e50;margin-top:4px}
 
 <nav class="nav">
  <button class="active" data-page="dashboard">🏠 控制台</button>
+ <button data-page="players">👥 玩家管理</button>
  <button data-page="questions">📚 题库管理</button>
  <button data-page="stageEditor">🗺 地图与景点</button>
  <button data-page="knowledge">📖 知识卡</button><button data-page="characters">👤 人物图鉴</button><button data-page="poetry">📜 诗词资料</button><button data-page="images">🖼 图片管理</button><button data-page="audio">🎵 音乐音效</button>
@@ -149,6 +152,26 @@ small.help{display:block;color:#765e50;margin-top:4px}
  <div class="two-col">
   <div class="section-card"><h3>题目类型分布</h3><div id="dashTypes" class="status"></div></div>
   <div class="section-card"><h3>答案位置分布</h3><div id="dashAnswers" class="status"></div></div>
+ </div>
+</section>
+
+<section id="players" class="panel-page">
+ <div class="section-card">
+  <div class="top"><div><h2>👥 云端玩家管理</h2><p>查看学生／教职员注册资料与当前游戏进度。资料来自 Supabase 云端数据库。</p></div><div class="toolbar"><button class="btn" id="refreshPlayersBtn">🔄 刷新玩家资料</button><button class="btn alt" id="exportPlayersCsvBtn">⬇ 导出 CSV</button></div></div>
+  <div class="cloud-note">目前为云端测试阶段：请勿在公开场合分享教师后台网址。后续正式开放给学生前，我们会再收紧数据库权限。</div>
+  <div class="cloud-kpis">
+   <div class="cloud-kpi">玩家总数<b id="cloudTotal">0</b></div><div class="cloud-kpi">学生<b id="cloudStudents">0</b></div><div class="cloud-kpi">教职员<b id="cloudStaff">0</b></div><div class="cloud-kpi">已答题<b id="cloudAnswered">0</b></div><div class="cloud-kpi">总正确<b id="cloudCorrect">0</b></div><div class="cloud-kpi">完成关卡<b id="cloudCompleted">0</b></div>
+  </div>
+  <div class="player-toolbar">
+   <label>身份<select id="playerRoleFilter"><option value="">全部</option><option value="student">学生</option><option value="staff">教职员</option></select></label>
+   <label>班级／部门<input id="playerGroupFilter" placeholder="例如：初一勤 / 华文组"></label>
+   <label>搜索<input id="playerSearch" placeholder="姓名、学号或编号"></label>
+   <button class="btn alt" id="clearPlayerFiltersBtn">清除筛选</button>
+  </div>
+  <div id="playerCloudStatus" class="status">尚未读取云端玩家资料。</div>
+ </div>
+ <div class="section-card table-wrap">
+  <table class="player-table"><thead><tr><th>身份</th><th>姓名</th><th>班级／部门</th><th>学号／编号</th><th>角色</th><th>得分</th><th>金币</th><th>正确</th><th>错误</th><th>已答</th><th>完成关卡</th><th>最后更新</th></tr></thead><tbody id="playerRows"><tr><td colspan="12" class="player-empty">点击“刷新玩家资料”读取 Supabase。</td></tr></tbody></table>
  </div>
 </section>
 
@@ -851,10 +874,76 @@ $("backupLimitInput").onchange=e=>{
 };
 
 function allRecords(){const out=[];config.stages.forEach((stage,si)=>stage.questions.forEach((q,qi)=>out.push({stage,si,q,qi})));return out}
+
+const CLOUD_SUPABASE_URL="https://cyznvvdxgcpikwsxkegt.supabase.co";
+const CLOUD_SUPABASE_KEY="sb_publishable_x8wLI_teqa54LX7X_NBzRw_JcfOC9NT";
+let cloudPlayerRows=[];
+async function cloudFetch(path){
+ const r=await fetch(CLOUD_SUPABASE_URL+"/rest/v1/"+path,{headers:{apikey:CLOUD_SUPABASE_KEY,Authorization:"Bearer "+CLOUD_SUPABASE_KEY}});
+ if(!r.ok)throw new Error((await r.text())||("HTTP "+r.status));
+ return r.json();
+}
+function completedCount(v){
+ if(Array.isArray(v))return v.filter(Boolean).length;
+ if(v&&typeof v==='object')return Object.values(v).filter(Boolean).length;
+ if(typeof v==='number')return v;
+ return 0;
+}
+function formatCloudTime(v){if(!v)return '—';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(e){return String(v)}}
+function mergeCloudPlayers(players,progress){
+ const pm=new Map(progress.map(x=>[String(x.player_id),x]));
+ return players.map(p=>{const g=pm.get(String(p.id))||{};return {...p,_progress:g,_completed:completedCount(g.completed),_last:g.updated_at||p.updated_at||p.created_at};});
+}
+function filteredCloudPlayers(){
+ const role=(document.getElementById('playerRoleFilter')?.value||'').trim();
+ const group=(document.getElementById('playerGroupFilter')?.value||'').trim().toLowerCase();
+ const q=(document.getElementById('playerSearch')?.value||'').trim().toLowerCase();
+ return cloudPlayerRows.filter(x=>{
+  const grp=String(x.class_name||x.department||'').toLowerCase();
+  const hay=[x.name,x.external_id,x.class_name,x.department].map(v=>String(v||'').toLowerCase()).join(' ');
+  return (!role||x.role===role)&&(!group||grp.includes(group))&&(!q||hay.includes(q));
+ });
+}
+function renderCloudPlayers(){
+ const rows=filteredCloudPlayers();
+ const tbody=document.getElementById('playerRows');if(!tbody)return;
+ if(!rows.length){tbody.innerHTML='<tr><td colspan="12" class="player-empty">没有符合条件的玩家。</td></tr>';}
+ else tbody.innerHTML=rows.map(x=>{const g=x._progress||{};return `<tr><td>${x.role==='student'?'学生':'教职员'}</td><td class="namecell">${esc(x.name||'')}</td><td>${esc(x.class_name||x.department||'—')}</td><td>${esc(x.external_id||'')}</td><td>${esc(x.avatar||'—')}</td><td>${g.score??0}</td><td>${g.coins??0}</td><td>${g.correct??0}</td><td>${g.wrong??0}</td><td>${g.answered??0}</td><td>${x._completed}/15</td><td>${esc(formatCloudTime(x._last))}</td></tr>`}).join('');
+ const all=cloudPlayerRows, progs=all.map(x=>x._progress||{});
+ document.getElementById('cloudTotal').textContent=all.length;
+ document.getElementById('cloudStudents').textContent=all.filter(x=>x.role==='student').length;
+ document.getElementById('cloudStaff').textContent=all.filter(x=>x.role==='staff').length;
+ document.getElementById('cloudAnswered').textContent=progs.reduce((a,g)=>a+(+g.answered||0),0);
+ document.getElementById('cloudCorrect').textContent=progs.reduce((a,g)=>a+(+g.correct||0),0);
+ document.getElementById('cloudCompleted').textContent=all.reduce((a,x)=>a+x._completed,0);
+}
+async function loadCloudPlayers(){
+ const st=document.getElementById('playerCloudStatus');if(st)st.textContent='正在读取 Supabase 云端资料……';
+ try{
+  const [players,progress]=await Promise.all([cloudFetch('players?select=*&order=created_at.desc'),cloudFetch('player_progress?select=*')]);
+  cloudPlayerRows=mergeCloudPlayers(players,progress);renderCloudPlayers();
+  if(st)st.textContent=`已读取 ${players.length} 位玩家；其中 ${progress.length} 位已有云端游戏进度。最后刷新：${new Date().toLocaleTimeString('zh-CN',{hour12:false})}`;
+ }catch(e){if(st)st.textContent='读取失败：'+e.message;console.error(e)}
+}
+function csvCell(v){const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
+function exportCloudPlayersCsv(){
+ const rows=filteredCloudPlayers();
+ const head=['身份','姓名','班级/部门','学号/编号','角色','得分','金币','正确','错误','已答','完成关卡','最后更新'];
+ const lines=[head, ...rows.map(x=>{const g=x._progress||{};return [x.role==='student'?'学生':'教职员',x.name,x.class_name||x.department||'',x.external_id,x.avatar||'',g.score||0,g.coins||0,g.correct||0,g.wrong||0,g.answered||0,x._completed,formatCloudTime(x._last)]})].map(r=>r.map(csvCell).join(','));
+ const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='梦回大观园_玩家进度_'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+}
+setTimeout(()=>{
+ const rb=document.getElementById('refreshPlayersBtn');if(rb)rb.onclick=loadCloudPlayers;
+ const eb=document.getElementById('exportPlayersCsvBtn');if(eb)eb.onclick=exportCloudPlayersCsv;
+ ['playerRoleFilter','playerGroupFilter','playerSearch'].forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener(id==='playerRoleFilter'?'change':'input',renderCloudPlayers)}});
+ const cb=document.getElementById('clearPlayerFiltersBtn');if(cb)cb.onclick=()=>{document.getElementById('playerRoleFilter').value='';document.getElementById('playerGroupFilter').value='';document.getElementById('playerSearch').value='';renderCloudPlayers()};
+},0);
+
 function showPage(id){
  document.querySelectorAll(".panel-page").forEach(x=>x.classList.toggle("active",x.id===id));
  document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===id));
  if(id==="dashboard")renderDashboard();
+ if(id==="players")loadCloudPlayers();
  if(id==="statistics")renderStatistics();
  if(id==="questions")runSearch();
  if(id==="stageEditor"){loadStage();drawMap()}
