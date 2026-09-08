@@ -933,9 +933,25 @@ function completedCount(v){
  return 0;
 }
 function formatCloudTime(v){if(!v)return '—';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(e){return String(v)}}
+function normalizeCloudPlayer(p){
+ const nested=Array.isArray(p?.player_progress)?(p.player_progress[0]||{}):(p?.progress||p?._progress||{});
+ const g={
+  score:Number(p?.score ?? nested.score ?? 0),
+  coins:Number(p?.coins ?? nested.coins ?? 0),
+  correct:Number(p?.correct ?? nested.correct ?? 0),
+  wrong:Number(p?.wrong ?? nested.wrong ?? 0),
+  answered:Number(p?.answered ?? nested.answered ?? 0),
+  combo:Number(p?.combo ?? nested.combo ?? 0),
+  best_combo:Number(p?.best_combo ?? nested.best_combo ?? 0),
+  completed:p?.completed ?? nested.completed ?? {},
+  stage_records:p?.stage_records ?? nested.stage_records ?? {},
+  updated_at:p?.progress_updated_at ?? nested.updated_at ?? p?.updated_at ?? p?.created_at ?? null
+ };
+ return {...p,_progress:g,_completed:completedCount(g.completed),_last:g.updated_at,has_cloud_progress:!!(p?.has_cloud_progress||p?.progress||p?._progress||(Array.isArray(p?.player_progress)&&p.player_progress.length)||g.answered||g.correct||g.score||g.coins||completedCount(g.completed))};
+}
 function mergeCloudPlayers(players,progress){
- const pm=new Map(progress.map(x=>[String(x.player_id),x]));
- return players.map(p=>{const g=pm.get(String(p.id))||{};return {...p,_progress:g,_completed:completedCount(g.completed),_last:g.updated_at||p.updated_at||p.created_at};});
+ const pm=new Map((progress||[]).map(x=>[String(x.player_id),x]));
+ return (players||[]).map(p=>normalizeCloudPlayer({...p,progress:pm.get(String(p.id))||p.progress}));
 }
 function filteredCloudPlayers(){
  const role=(document.getElementById('playerRoleFilter')?.value||'').trim();
@@ -963,9 +979,18 @@ function renderCloudPlayers(){
 async function loadCloudPlayers(){
  const st=document.getElementById('playerCloudStatus');if(st)st.textContent='正在读取 Supabase 云端资料……';
  try{
-  const data=await cloudFetch();const players=data.players||[],progress=data.progress||[];
-  cloudPlayerRows=mergeCloudPlayers(players,progress);renderCloudPlayers();
-  if(st)st.textContent=`已读取 ${players.length} 位玩家；其中 ${progress.length} 位已有云端游戏进度。最后刷新：${new Date().toLocaleTimeString('zh-CN',{hour12:false})}`;
+  const data=await cloudFetch();
+  if(Array.isArray(data?.players)){
+   const legacyProgress=Array.isArray(data?.progress)?data.progress:[];
+   cloudPlayerRows=legacyProgress.length?mergeCloudPlayers(data.players,legacyProgress):data.players.map(normalizeCloudPlayer);
+  }else if(Array.isArray(data)){
+   cloudPlayerRows=data.map(normalizeCloudPlayer);
+  }else{
+   cloudPlayerRows=[];
+  }
+  renderCloudPlayers();
+  const progressCount=cloudPlayerRows.filter(x=>x.has_cloud_progress).length;
+  if(st)st.textContent=`已读取 ${cloudPlayerRows.length} 位玩家；其中 ${progressCount} 位已有云端游戏进度。最后刷新：${new Date().toLocaleTimeString('zh-CN',{hour12:false})}`;
  }catch(e){if(st)st.textContent='读取失败：'+e.message;console.error(e)}
 }
 function csvCell(v){const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}
