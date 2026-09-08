@@ -1,0 +1,1741 @@
+﻿<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>梦回大观园</title>
+<link rel="stylesheet" href="style.css">
+<style>
+body{overflow-x:hidden}
+.game-shell{max-width:1500px;margin:auto;padding:12px}
+.canvas-wrap{position:relative;background:#f7ecd9;border:3px double #b98a4a;border-radius:18px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;touch-action:none}
+.map-top{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.audio-controls{display:flex;gap:8px;flex-wrap:wrap}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:14px;margin:8px 0}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px}
+.open{background:#2b76af}.donec{background:#61a04c}.lockedc{background:#777}
+@media(max-width:680px){.game-shell{padding:6px}.pill{font-size:13px}.btn{padding:8px 11px}}
+
+.reward-float{position:fixed;left:50%;top:28%;transform:translateX(-50%);z-index:200;
+font-size:26px;font-weight:900;color:#8d3d31;background:#fff7cf;border:3px double #c59545;
+border-radius:999px;padding:10px 18px;pointer-events:none;animation:rewardUp 1.2s forwards}
+@keyframes rewardUp{0%{opacity:0;transform:translate(-50%,20px) scale(.8)}
+20%{opacity:1}100%{opacity:0;transform:translate(-50%,-70px) scale(1.08)}}
+.settlement-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}
+.settle-box{background:#fff;border:1px solid #d8bd94;border-radius:12px;padding:12px}
+.stars{font-size:34px;letter-spacing:4px}
+@media(max-width:520px){.settlement-grid{grid-template-columns:1fr}}
+
+.collection-wrap{margin-top:14px}
+.collection-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.person-card{background:#fff;border:1px solid #d8bd94;border-radius:12px;padding:10px;text-align:center}
+.person-card.locked-person{filter:grayscale(1);opacity:.55}
+.person-icon{font-size:30px}
+.reveal-person{font-size:22px;color:#8d3d31;font-weight:bold;margin:10px 0}
+@media(max-width:760px){.collection-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:460px){.collection-grid{grid-template-columns:repeat(2,1fr)}}
+
+.compare-row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.map-stage-label{font-weight:bold;color:#8d3d31}
+.final-banner{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);
+background:#fff6d8e8;border:6px double #c49b43;border-radius:24px;padding:18px 28px;
+font-size:clamp(26px,4vw,48px);font-weight:900;color:#8d3d31;z-index:8;display:none;
+box-shadow:0 12px 35px #0005;text-align:center}
+.final-banner.show{display:block;animation:bannerIn 1s ease}
+@keyframes bannerIn{from{opacity:0;transform:translate(-50%,-40%) scale(.75)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+.guide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.guide-card{border:1px solid #d8bd94;border-radius:14px;background:#fff;padding:12px;cursor:pointer;text-align:center}
+.guide-card.locked{filter:grayscale(1);opacity:.5;cursor:not-allowed}.guide-card .big{font-size:36px}
+.card-detail h2{margin-bottom:5px}.repair-cinema{position:fixed;inset:0;background:rgba(15,10,8,.84);z-index:300;display:none;align-items:center;justify-content:center;padding:18px}
+.repair-cinema.show{display:flex}.repair-scene{width:min(720px,95vw);background:#fff8e7;border:7px double #d0a34e;border-radius:24px;padding:24px;text-align:center;overflow:hidden}
+.repair-symbol{font-size:86px;animation:repairPulse 1s infinite alternate}.repair-particles{height:100px;font-size:30px;overflow:hidden;animation:particleFloat 2.2s ease}
+@keyframes repairPulse{to{transform:scale(1.12);filter:brightness(1.3)}}@keyframes particleFloat{from{opacity:0;transform:translateY(35px)}to{opacity:1;transform:translateY(-10px)}}
+@media(max-width:720px){.guide-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:430px){.guide-grid{grid-template-columns:1fr}}
+
+.canvas-wrap.repairing{box-shadow:0 0 0 5px #d4aa53,0 0 35px #f1d278}
+#mapCanvas{cursor:pointer}.canvas-wrap.repairing #mapCanvas{cursor:wait}
+
+.canvas-wrap.repairing{box-shadow:0 0 0 5px #d4aa53,0 0 42px #f1d278}
+
+
+.success-panel{position:relative;background:linear-gradient(180deg,#fffdf5,#fff4d8);border-color:#b9823d}
+.success-panel:before,.success-panel:after{content:"";position:absolute;width:62px;height:62px;border:2px solid rgba(157,91,48,.18);transform:rotate(45deg)}
+.success-panel:before{left:22px;top:22px}.success-panel:after{right:22px;bottom:22px}
+.success-seal{width:72px;height:72px;border-radius:18px;margin:0 auto 8px;background:#9a4034;color:#fff6db;
+display:flex;align-items:center;justify-content:center;font-family:serif;font-size:42px;font-weight:900;
+box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
+.success-kicker{letter-spacing:.22em;color:#9a6b34;font-weight:bold;font-size:13px}
+.success-message{font-size:18px;color:#6f4c38;margin:-4px 0 10px}
+.success-panel .settle-box{background:#fffdf8;border:1px solid #d7bc8e}
+.success-panel .btn{min-width:150px;margin:4px}
+
+.person-card.unlocked{cursor:pointer}.person-card.unlocked:hover{transform:translateY(-3px);box-shadow:0 8px 20px #6f382522}
+.profile-head{display:flex;gap:15px;align-items:center}.profile-icon{font-size:72px}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.profile-box{background:#fffaf0;border:1px solid #d8bd94;border-radius:12px;padding:12px}
+.poetry-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.poetry-card{background:#fff;border:1px solid #d8bd94;border-radius:13px;padding:13px;cursor:pointer}
+.poetry-card:hover{background:#fff3d6}.poetry-excerpt{font-family:serif;font-size:18px;color:#8d3d31;margin:8px 0}
+@media(max-width:650px){.profile-grid,.poetry-grid{grid-template-columns:1fr}}
+
+.detail-image{width:110px;height:110px;object-fit:cover;border-radius:16px;border:3px solid #d0a34e;background:#fff}
+.poetry-detail-image{display:block;max-width:100%;max-height:260px;margin:12px auto;border-radius:14px;border:2px solid #d8bd94}
+
+.map-status-panel{position:absolute;top:16px;right:16px;z-index:8;background:rgba(255,250,238,.92);border:2px solid #c99b55;border-radius:14px;padding:10px 12px;min-width:155px;box-shadow:0 7px 20px rgba(80,45,25,.18);backdrop-filter:blur(3px)}
+.map-status-panel div{display:flex;justify-content:space-between;gap:14px;font-size:13px;padding:3px 0}
+.map-status-panel span{color:#79563e}.map-status-panel b{color:#8d3d31}
+.next-stage-toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);z-index:20;background:rgba(126,55,42,.94);color:#fff8dc;border:2px solid #e1b96c;border-radius:12px;padding:9px 18px;font-weight:bold;opacity:0;pointer-events:none;transition:opacity .35s,transform .35s}
+.next-stage-toast.show{opacity:1;transform:translate(-50%,8px)}
+#repairTitle,.repair-title,.map-repair-title{font-size:clamp(10px,1.5vw,17px)!important;line-height:1.2!important}
+.success-panel h1{font-size:clamp(12px,1.7vw,18px)!important;margin:4px 0}
+@media(max-width:700px){.map-status-panel{top:8px;right:8px;min-width:128px;padding:7px 9px}.map-status-panel div{font-size:11px}.next-stage-toast{top:18%;font-size:13px}}
+
+#repairCinemaTitle{
+  font-size:clamp(12px,1.6vw,18px)!important;
+  line-height:1.18!important;
+  margin:4px 0 7px!important;
+  font-weight:800!important;
+}
+.repair-scene{padding:14px!important}
+.repair-symbol{font-size:52px!important}
+.repair-particles{height:58px!important;font-size:19px!important}
+
+.repair-title-toast{position:absolute;left:50%;z-index:25;transform:translateX(-50%);padding:6px 14px;border-radius:10px;background:rgba(94,47,37,.90);border:1px solid rgba(231,193,118,.85);box-shadow:0 5px 16px rgba(60,30,20,.20);font-weight:800;letter-spacing:.04em;opacity:0;pointer-events:none;transition:opacity .7s ease,transform .7s ease;white-space:nowrap}
+.repair-title-toast.show{opacity:var(--repair-opacity,.92)}
+.repair-title-toast.pos-top{top:8%;transform:translate(-50%,0)}
+.repair-title-toast.pos-middle{top:50%;transform:translate(-50%,-50%)}
+.repair-title-toast.pos-bottom{bottom:8%;transform:translate(-50%,0)}
+
+.repair-sub-line{font-size:.72em;font-weight:500;margin-top:3px;opacity:.88;letter-spacing:.02em}
+
+.stage-scene-banner{width:100%;max-height:235px;object-fit:cover;border-radius:15px;border:2px solid #d7b676;background:#fffaf0;margin:6px 0 12px;box-shadow:0 7px 18px rgba(91,57,34,.12)}
+.guide-thumb{width:100%;aspect-ratio:480/260;object-fit:cover;border-radius:10px;border:1px solid #d8bd94;margin-bottom:7px;background:#f5ead8}
+.card-scene-image{display:block;width:min(560px,100%);max-height:300px;object-fit:cover;margin:0 auto 14px;border-radius:16px;border:3px double #d0a34e;background:#fff}
+.repair-scene-image{display:block;width:min(520px,100%);max-height:230px;object-fit:cover;margin:8px auto 10px;border-radius:14px;border:2px solid #d8bd94;background:#fff}
+
+/* ===== 玩家资料登记设计版 ===== */
+.profile-gate{min-height:100vh;background:linear-gradient(180deg,#fff7e5 0%,#f7dca8 52%,#f2cf94 100%);padding:28px 14px 48px;color:#65432f}
+.profile-gate-inner{width:min(980px,100%);margin:0 auto}
+.profile-brand{text-align:center;margin:4px 0 18px}.profile-brand h1{font-family:serif;font-size:clamp(34px,6vw,58px);margin:0;color:#8e4e2f;letter-spacing:.12em}.profile-brand p{margin:8px 0 0;color:#9c724f;font-weight:700}
+.profile-story{background:rgba(255,255,255,.88);border-radius:28px;padding:24px 30px;text-align:center;box-shadow:0 8px 30px rgba(124,76,34,.10);line-height:1.9;font-size:clamp(15px,2.2vw,19px);margin-bottom:20px}
+.profile-story b{color:#7d452d;font-size:1.05em}
+.profile-card{background:rgba(255,252,245,.95);border:3px solid #d1a15c;border-radius:28px;padding:24px;box-shadow:0 14px 34px rgba(115,69,28,.12)}
+.role-tabs{display:flex;gap:10px;justify-content:center;margin-bottom:20px}.role-tab{border:2px solid #d5ad70;background:#fff;border-radius:999px;padding:10px 24px;font-size:16px;font-weight:800;color:#765039;cursor:pointer}.role-tab.active{background:#9a5734;color:#fff;border-color:#9a5734}
+.profile-form-title{text-align:center;color:#8b4b2e;margin:0 0 16px;font-size:22px}
+.profile-form-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}.pf-field{grid-column:span 4;min-width:0}.pf-field.half{grid-column:span 6}.pf-field.full{grid-column:1/-1}.pf-field label{display:block;font-weight:800;margin:0 0 6px;color:#704831}.pf-field input{width:100%;box-sizing:border-box;border:2px solid #d5ad70;background:#fffefb;border-radius:15px;padding:13px 15px;font-size:16px;outline:none;min-width:0}.pf-field input:focus{border-color:#a65f38;box-shadow:0 0 0 3px rgba(166,95,56,.12)}
+.pf-help{text-align:center;margin:14px 0 4px;color:#725594;font-weight:800}.avatar-box{margin:18px auto 0;width:min(480px,100%);border:2px dashed #d4a866;border-radius:24px;padding:16px;text-align:center;background:#fffaf0}.avatar-options{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}.avatar-choice{display:flex;align-items:center;gap:8px;border:2px solid #d5ad70;background:#fff;border-radius:999px;padding:8px 18px;cursor:pointer}.avatar-choice input{width:18px;height:18px}
+.profile-actions{text-align:center;margin-top:18px}.profile-start{border:none;border-radius:999px;background:#c17837;color:#fff9e9;font-size:20px;font-weight:900;padding:14px 38px;box-shadow:0 7px 0 #a26029;cursor:pointer;min-width:300px;max-width:100%}.profile-start:active{transform:translateY(3px);box-shadow:0 4px 0 #a26029}.profile-error{min-height:24px;text-align:center;color:#a33b32;font-weight:800;margin-top:12px}
+.current-player{display:inline-flex;align-items:center;gap:6px;background:#fff7d9;border:1px solid #d5ad70;border-radius:999px;padding:7px 11px;font-weight:800;color:#7d4c2e}.switch-player{border:0;background:transparent;color:#8d3d31;font-weight:800;text-decoration:underline;cursor:pointer;padding:0 2px}
+@media(max-width:720px){.profile-gate{padding:18px 10px 34px}.profile-story{padding:18px 16px;border-radius:20px}.profile-card{padding:18px 12px;border-radius:20px}.pf-field,.pf-field.half{grid-column:1/-1}.role-tab{flex:1;padding:10px 8px}.profile-start{min-width:0;width:100%}.profile-form-grid{gap:11px}}
+
+
+/* 复园主题注册页 V2 */
+.profile-gate{min-height:100vh;background:linear-gradient(rgba(255,250,241,.90),rgba(247,236,217,.94)),url('images/大观园正式地图.png') center/cover fixed;padding:28px 16px 50px}
+.profile-gate-inner{max-width:1180px;margin:auto}.profile-brand{text-align:center;padding:18px 12px 8px}.profile-brand h1{font-family:STKaiti,KaiTi,serif;font-size:clamp(42px,7vw,76px);letter-spacing:8px;color:#8f281f;margin:0;text-shadow:0 3px 0 #fff3d1,0 6px 18px #b77b55}.profile-brand .sub{display:inline-block;margin-top:8px;padding:8px 26px;border-radius:999px;background:#173f5f;color:#fff5d7;font-size:clamp(17px,2.5vw,25px);font-weight:900;border:2px solid #d6a85b}.profile-motto{margin:14px auto 18px;max-width:900px;text-align:center;background:#fffaf0e8;border:1px solid #d6b27a;border-radius:14px;padding:11px 18px;color:#71382b;font-weight:900;font-size:18px}.profile-story{max-width:900px;margin:0 auto 22px;background:#fffaf2e8;border:1px solid #d8b47b;border-radius:20px;padding:17px 24px;text-align:center;color:#66412f;box-shadow:0 10px 30px #76522b18}.profile-story strong{color:#a52e25;font-size:22px}.dual-register{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:stretch}.register-panel{background:#fffdf8ed;border:2px solid #d9b16f;border-radius:24px;padding:22px;box-shadow:0 16px 36px #60401f24;position:relative;overflow:hidden}.register-panel.student{border-color:#7caed4}.register-panel.staff{border-color:#d99a9d}.register-panel.selected{box-shadow:0 0 0 5px #f4c84d80,0 18px 40px #60401f30;transform:translateY(-2px)}.panel-title{text-align:center;font-family:STKaiti,KaiTi,serif;font-size:28px;font-weight:900;margin:0 0 15px}.student .panel-title{color:#185a92}.staff .panel-title{color:#a43c46}.identity-pick{display:flex;justify-content:center;margin-bottom:14px}.identity-pick label{font-weight:900;background:#fff7e9;border:1px solid #d8bd8d;border-radius:999px;padding:8px 16px;cursor:pointer}.profile-fields{display:grid;grid-template-columns:1fr;gap:10px}.profile-fields label{font-weight:800;color:#593c2c}.profile-fields input{width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid #d8c3a3;border-radius:11px;background:#fff;font-size:16px}.avatar-title{text-align:center;font-weight:900;color:#7c3d31;margin:17px 0 10px}.avatar-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.avatar-option{display:block;cursor:pointer}.avatar-option input{position:absolute;opacity:0}.avatar-card{border:2px solid #ddc7a4;border-radius:18px;background:#fffaf2;padding:8px;text-align:center;transition:.18s}.avatar-card img{width:100%;height:190px;object-fit:cover;object-position:50% 38%;border-radius:13px;display:block}.avatar-name{font-weight:900;margin-top:7px;color:#5c3b2d}.avatar-check{display:none;position:absolute;right:10px;top:10px;background:#d9a92e;color:white;width:30px;height:30px;border-radius:50%;align-items:center;justify-content:center;font-weight:900}.avatar-option input:checked+.avatar-card{border-color:#d4a21e;box-shadow:0 0 0 4px #f7d96b70;background:#fff7d7;transform:translateY(-2px)}.avatar-option input:checked+.avatar-card .avatar-check{display:flex}.avatar-card{position:relative}.panel-start{width:100%;margin-top:17px;border:0;border-radius:14px;padding:14px 16px;font-size:18px;font-weight:900;color:white;cursor:pointer;box-shadow:0 5px 0 #7f3527}.student .panel-start{background:linear-gradient(#2d79ad,#185b8d);box-shadow:0 5px 0 #10446b}.staff .panel-start{background:linear-gradient(#c85862,#a43b45);box-shadow:0 5px 0 #7c2b34}.profile-help-new{text-align:center;margin:18px 0 0;color:#745744;font-size:14px}.profile-error{min-height:24px;text-align:center;color:#a33b32;font-weight:900;margin:14px 0 0}.role-tabs,.profile-form-title,.profile-card{display:none!important}
+@media(max-width:820px){.dual-register{grid-template-columns:1fr}.profile-brand h1{letter-spacing:3px}.register-panel{padding:16px}.avatar-card img{height:170px}}
+
+</style>
+</head>
+<body>
+<audio id="bgm" loop preload="auto" src="audio/空山箫语_Whisper_of_Empty_Mountains.mp3"></audio>
+<audio id="clickSfx" preload="auto" src="audio/click.wav"></audio>
+<audio id="correctSfx" preload="auto" src="audio/correct.wav"></audio>
+<audio id="wrongSfx" preload="auto" src="audio/wrong.wav"></audio>
+<audio id="repairSfx" preload="auto" src="audio/correct.wav"></audio>
+
+
+<div id="profileGate" class="profile-gate">
+  <div class="profile-gate-inner">
+    <div class="profile-brand"><h1>梦回大观园</h1><div class="sub">《红楼梦》寻迹复园之旅</div></div>
+    <div class="profile-motto">寻红楼旧迹 · 解经典之问 · 修十五园景 · 复大观芳华</div>
+    <div class="profile-story"><strong>化身「大观园复园使」</strong><br>循红楼旧迹，访大观园景；完成答题挑战，收集修复金币，逐一唤醒园中十五处景致。</div>
+    <form id="playerProfileForm" autocomplete="off">
+      <div class="dual-register">
+        <section id="studentPanel" class="register-panel student selected">
+          <h2 class="panel-title">🎓 学生注册</h2>
+          <div class="identity-pick"><label><input type="radio" name="rolePick" value="student" checked> 我是学生</label></div>
+          <div id="studentFields" class="profile-fields">
+            <div><label for="studentName">学生姓名</label><input id="studentName" maxlength="30" placeholder="请输入真实姓名"></div>
+            <div><label for="studentClass">班级</label><input id="studentClass" maxlength="20" placeholder="例如：初一诚"></div>
+            <div><label for="studentId">学生学号</label><input id="studentId" maxlength="30" placeholder="例如：20260XX"></div>
+            <div><label for="studentPin">设置 4 位 PIN</label><input id="studentPin" inputmode="numeric" maxlength="4" placeholder="请输入 4 位数字"></div>
+            <div><label for="studentPin2">再次输入 PIN</label><input id="studentPin2" inputmode="numeric" maxlength="4" placeholder="请再次输入 4 位数字"></div>
+          </div>
+          <div class="avatar-title">选择复园使形象</div>
+          <div class="avatar-pair">
+            <label class="avatar-option"><input type="radio" name="studentAvatar" value="男复园使" checked><div class="avatar-card"><span class="avatar-check">✓</span><img src="images/avatars/male_fuyuan.png" alt="男复园使"><div class="avatar-name">男复园使</div></div></label>
+            <label class="avatar-option"><input type="radio" name="studentAvatar" value="女复园使"><div class="avatar-card"><span class="avatar-check">✓</span><img src="images/avatars/female_fuyuan.png" alt="女复园使"><div class="avatar-name">女复园使</div></div></label>
+          </div>
+          <button class="panel-start" type="submit" data-role="student">开启／继续复园之旅</button>
+        </section>
+        <section id="staffPanel" class="register-panel staff">
+          <h2 class="panel-title">📚 教职员注册</h2>
+          <div class="identity-pick"><label><input type="radio" name="rolePick" value="staff"> 我是教职员</label></div>
+          <div id="staffFields" class="profile-fields">
+            <div><label for="staffName">教职员姓名</label><input id="staffName" maxlength="30" placeholder="请输入真实姓名"></div>
+            <div><label for="staffDept">部门／职务</label><input id="staffDept" maxlength="30" placeholder="例如：华文组 / 教师"></div>
+            <div><label for="staffId">教职员编号</label><input id="staffId" maxlength="30" placeholder="例如：YPHS00XX"></div>
+            <div><label for="staffPin">设置 4 位 PIN</label><input id="staffPin" inputmode="numeric" maxlength="4" placeholder="请输入 4 位数字"></div>
+            <div><label for="staffPin2">再次输入 PIN</label><input id="staffPin2" inputmode="numeric" maxlength="4" placeholder="请再次输入 4 位数字"></div>
+          </div>
+          <div class="avatar-title">选择复园使形象</div>
+          <div class="avatar-pair">
+            <label class="avatar-option"><input type="radio" name="staffAvatar" value="男复园使" checked><div class="avatar-card"><span class="avatar-check">✓</span><img src="images/avatars/male_fuyuan.png" alt="男复园使"><div class="avatar-name">男复园使</div></div></label>
+            <label class="avatar-option"><input type="radio" name="staffAvatar" value="女复园使"><div class="avatar-card"><span class="avatar-check">✓</span><img src="images/avatars/female_fuyuan.png" alt="女复园使"><div class="avatar-name">女复园使</div></div></label>
+          </div>
+          <button class="panel-start" type="submit" data-role="staff">开启／继续复园之旅</button>
+        </section>
+      </div>
+      <div id="profileError" class="profile-error"></div>
+      <div class="profile-help-new">请选择身份并填写真实资料。相同编号与 PIN 可在不同设备登录并继续云端游戏进度。</div>
+    </form>
+  </div>
+</div>
+
+<div class="game-shell" id="gameShell">
+  <div class="map-top">
+    <div>
+      <h1 style="margin:0">🌸 梦回大观园</h1><div style="font-weight:bold;color:#8d3d31">修复大观园｜《红楼梦》十五景修缮之旅</div>
+      <div class="legend">
+        <span><i class="dot open"></i>当前关卡</span>
+        <span><i class="dot donec"></i>已完成</span>
+        <span><i class="dot lockedc"></i>未开放</span>
+      </div>
+    </div>
+    <div class="stats">
+      <span class="pill">⭐ 得分 <span id="score">0</span></span>
+      <span class="pill">🪙 金币 <span id="coins">0</span></span>
+      <span class="pill">✅ 正确 <span id="correctCount">0</span></span>
+      <span class="pill">❌ 错误 <span id="wrongCount">0</span></span>
+      <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
+      <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
+      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
+    </div>
+  </div>
+
+  <div class="compare-row">
+    <span class="pill">地图阶段：<span id="mapStageLabel" class="map-stage-label">待修复</span></span>
+    <button class="btn alt" id="beforeBtn">查看修复前</button>
+    <button class="btn alt" id="afterBtn">查看当前成果</button>
+  </div>
+  <div class="canvas-wrap">
+    <div id="finalBanner" class="final-banner">🌸 梦回大观园 🌸<br><small>全园修复完成</small></div>
+    
+<div id="mapStatusPanel" class="map-status-panel">
+  <div><span>📍 当前地点</span><b id="statusLocation">大观园正门</b></div>
+  <div><span>🏯 修复进度</span><b id="statusProgress">0 / 15</b></div>
+  <div><span>🪙 金币</span><b id="statusCoins">0</b></div>
+</div>
+<div id="nextStageToast" class="next-stage-toast"></div><div id="repairTitleToast" class="repair-title-toast"></div>
+<canvas id="mapCanvas" width="1536" height="1024" aria-label="大观园十五关互动地图"></canvas>
+  </div>
+  <div id="mapRepairStatus" class="note hidden" style="text-align:center;font-size:18px;font-weight:bold"></div><div class="progress" style="margin-top:10px"><div id="overallBar" class="bar"></div></div>
+  <section class="collection-wrap">
+    <h2>人物图鉴</h2>
+    <div id="personCollection" class="collection-grid"></div>
+  </section>
+</div>
+
+
+
+<div class="modal" id="personDetailModal">
+ <div class="panel">
+  <div class="top"><h2 id="personDetailTitle">人物图鉴</h2><button class="btn alt" id="closePersonDetail">关闭</button></div>
+  <div class="profile-head"><div id="personDetailVisual"><div id="personDetailIcon" class="profile-icon">👤</div></div><div><h2 id="personDetailName"></h2><div id="personDetailStage" class="badge"></div></div></div>
+  <div class="profile-grid" style="margin-top:12px">
+   <div class="profile-box"><h3>身份</h3><div id="personIdentity"></div></div>
+   <div class="profile-box"><h3>性格</h3><div id="personPersonality"></div></div>
+   <div class="profile-box"><h3>代表情节</h3><div id="personStories"></div></div>
+   <div class="profile-box"><h3>相关诗词</h3><div id="personPoems"></div></div>
+  </div>
+ </div>
+</div>
+<div class="modal" id="poetryModal">
+ <div class="panel">
+  <div class="top"><h2>📜 诗词图鉴</h2><button class="btn alt" id="closePoetry">关闭</button></div>
+  <p>相关景点完成后，诗词资料会逐步解锁。</p>
+  <div id="poetryGrid" class="poetry-grid"></div>
+ </div>
+</div>
+<div class="modal" id="poetryDetailModal">
+ <div class="panel">
+  <div class="top"><h2 id="poetryDetailTitle"></h2><button class="btn alt" id="closePoetryDetail">关闭</button></div>
+  <div id="poetryDetailAuthor" class="badge"></div><div id="poetryDetailImageWrap"></div>
+  <div id="poetryDetailExcerpt" class="poetry-excerpt"></div>
+  <h3>创作背景</h3><div id="poetryDetailBackground" class="note"></div>
+  <h3>文学意义</h3><div id="poetryDetailMeaning" class="note"></div>
+ </div>
+</div>
+<div class="modal" id="guideModal">
+ <div class="panel">
+  <div class="top"><h2>📖 大观园导览册</h2><button class="btn alt" id="closeGuide">关闭</button></div>
+  <p>完成关卡后，即可解锁对应景点知识卡。</p>
+  <div id="guideGrid" class="guide-grid"></div>
+ </div>
+</div>
+<div class="modal" id="cardModal">
+ <div class="panel card-detail">
+  <div class="top"><h2 id="cardTitle"></h2><button class="btn alt" id="closeCard">关闭</button></div>
+  <div id="cardIcon" style="font-size:70px;text-align:center"></div>
+  <img id="cardSceneImage" class="card-scene-image" alt="景点插图">
+  <h3>景点简介</h3><div id="cardIntro" class="note"></div>
+  <h3>文学意义</h3><div id="cardMeaning" class="note"></div>
+  <h3>修复成果</h3><div id="cardRepair" class="note"></div>
+ </div>
+</div>
+<div id="repairCinema" class="repair-cinema" style="display:none!important">
+ <div class="repair-scene">
+  <div id="repairSymbol" class="repair-symbol">🏯</div>
+  <img id="repairSceneImage" class="repair-scene-image" alt="修复景点插图">
+  <h1 id="repairCinemaTitle">修复完成</h1>
+  <div id="repairCinemaText" class="note"></div>
+  <div id="repairParticles" class="repair-particles">✨ 🌸 ✨ 🏮 ✨</div>
+  <button class="btn" id="finishRepairCinema">领取知识卡</button>
+ </div>
+</div>
+<div class="modal" id="recordModal">
+ <div class="panel">
+  <div class="top"><h2>📊 我的学习记录</h2><button class="btn alt" id="closeRecord">关闭</button></div>
+  <div id="recordContent" class="note"></div>
+  <button class="btn" id="downloadRecordBtn">下载学习记录 CSV</button>
+ </div>
+</div>
+<div class="modal" id="quizModal">
+ <div class="panel">
+  <div class="top">
+    <div><h2 id="stageTitle"></h2><p id="stagePerson"></p></div>
+    <button class="btn alt" id="closeQuiz">返回地图</button>
+  </div>
+  <img id="stageSceneImage" class="stage-scene-banner" alt="当前景点插图">
+  <div class="progress"><div id="quizBar" class="bar"></div></div>
+  <div class="note" id="repairText"></div>
+  <h2 id="questionText"></h2>
+  <div id="answers" class="answers"></div>
+  <div id="feedback" class="note">请选择答案。</div>
+  <button class="btn hidden" id="nextBtn">下一题</button>
+ </div>
+</div>
+
+
+
+<div class="modal" id="practiceModal">
+ <div class="panel" style="text-align:center">
+  <div style="font-size:64px">📖</div>
+  <h2 id="practiceTitle">此地点已经修复</h2>
+  <p>重新进入将作为练习，不增加得分、金币、正确题数或连击。</p>
+  <button class="btn" id="practiceBtn">开始练习</button>
+  <button class="btn alt" id="cancelPracticeBtn">取消</button>
+ </div>
+</div>
+
+<div class="modal" id="settlementModal">
+ <div class="panel success-panel" style="text-align:center">
+  <div class="success-seal">修</div>
+  <div class="success-kicker">大观园修缮记录</div>
+  <h1 id="settlementTitle">关卡修复完成</h1>
+  <div id="settlementMessage" class="success-message">景点已恢复昔日风华</div>
+  <div class="stars" id="settlementStars">★★★</div>
+  <div class="reveal-person" id="settlementPerson"></div>
+  <div class="settlement-grid">
+   <div class="settle-box">本关得分<br><b id="stageScoreResult">0</b></div>
+   <div class="settle-box">本关金币<br><b id="stageCoinsResult">0</b></div>
+   <div class="settle-box">答对题数<br><b id="stageCorrectResult">0</b></div>
+   <div class="settle-box">最高连击<br><b id="stageComboResult">0</b></div>
+  </div>
+  <button class="btn" id="nextStageBtn">进入下一关</button>
+  <button class="btn alt" id="continueMapBtn">返回地图</button>
+ </div>
+</div>
+
+<div class="modal" id="resultModal">
+ <div class="panel" style="text-align:center">
+  <div style="font-size:78px">🏆</div>
+  <h1>大观园修复完成</h1>
+  <p>最终称号：<b id="finalTitle"></b></p>
+  <p>最终得分：<b id="finalScore"></b></p>
+  <p>修缮金币：<b id="finalCoins"></b></p>
+  <p>正确率：<b id="finalAccuracy"></b></p>
+  <button class="btn" id="backMap">返回地图</button>
+ </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+const SHARED_CONFIG_KEY="dreamGardenSharedConfigV1";
+function loadLatestGameConfig(){
+  try{
+    const saved=localStorage.getItem(SHARED_CONFIG_KEY);
+    if(saved){
+      const parsed=JSON.parse(saved);
+      if(parsed&&Array.isArray(parsed.stages))return parsed;
+    }
+  }catch(err){
+    console.warn("无法读取教师后台保存资料：",err);
+  }
+  return GAME_CONFIG;
+}
+const ACTIVE_GAME_CONFIG=loadLatestGameConfig();
+const STAGES = ACTIVE_GAME_CONFIG.stages;
+const SETTINGS = ACTIVE_GAME_CONFIG.settings || {
+  questionsPerStage:5, scorePerCorrect:10, coinsPerCorrect:20,
+  firstClearScore:50, firstClearCoins:100, comboStart:3,
+  comboBonusStep:5, comboBonusMax:20, allowPractice:true,
+  practiceRewards:false, autoNextStage:true,
+  ambientClouds:true,ambientPetals:true,ambientLeaves:true,
+  ambientButterflies:true,ambientBirds:true,lanternGlow:true,
+  waterAnimation:true,repairAnimationDuration:6500
+};
+
+const configChannel=("BroadcastChannel" in window)?new BroadcastChannel("dreamGardenConfigChannel"):null;
+if(configChannel){
+  configChannel.onmessage=event=>{
+    if(event.data?.type==="config-updated"){
+      const ok=confirm("教师后台已保存新资料。是否立即重新载入学生版？");
+      if(ok)location.reload();
+    }
+  };
+}
+window.addEventListener("storage",event=>{
+  if(event.key===SHARED_CONFIG_KEY){
+    const ok=confirm("检测到教师后台的新资料。是否立即重新载入？");
+    if(ok)location.reload();
+  }
+});
+
+const canvas = document.getElementById("mapCanvas");
+const ctx = canvas.getContext("2d");
+const mapImage = new Image();
+const effectImages={};
+["gold_glow","sparkle"].forEach(name=>{
+  const img=new Image();
+  img.src="images/effects/"+name+".png";
+  effectImages[name]=img;
+});
+mapImage.src = "images/大观园正式地图.png";
+
+// ===== 安全云端存档：学生版只通过 Vercel API，不再直接连接 Supabase =====
+const PLAYER_TOKEN_KEY="menghuiPlayerSessionV1";
+let playerToken=localStorage.getItem(PLAYER_TOKEN_KEY)||"";
+
+async function readApiJson(response){
+  const text=await response.text();
+  let data=null;
+  try{data=text?JSON.parse(text):null;}catch{}
+  if(!response.ok || !data?.ok){
+    const err=new Error(data?.message||text||("HTTP "+response.status));
+    err.status=response.status;
+    err.code=data?.code||"";
+    throw err;
+  }
+  return data;
+}
+
+async function cloudLoginOrRegister(p,pin){
+  const response=await fetch("/api/player-login",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      role:p.role,
+      name:p.name,
+      external_id:p.id,
+      class_name:p.role==="student"?(p.className||""):"",
+      department:p.role==="staff"?(p.department||""):"",
+      avatar:p.avatar,
+      pin
+    })
+  });
+  const data=await readApiJson(response);
+  if(!data.token)throw new Error("服务器没有返回玩家登录 token");
+  playerToken=data.token;
+  localStorage.setItem(PLAYER_TOKEN_KEY,playerToken);
+  const row=data.player||{};
+  return {
+    ...p,
+    dbId:Number(row.id||0),
+    name:row.name||p.name,
+    className:p.role==="student"?(row.class_name||p.className||""):(p.className||""),
+    department:p.role==="staff"?(row.department||p.department||""):(p.department||""),
+    avatar:row.avatar||p.avatar
+  };
+}
+
+async function cloudLoadProgressFor(){
+  if(!playerToken)return null;
+  const response=await fetch("/api/load-progress",{
+    method:"GET",
+    headers:{"Authorization":"Bearer "+playerToken}
+  });
+  const data=await readApiJson(response);
+  return data.progress||null;
+}
+
+async function cloudLoadProgress(){
+  return cloudLoadProgressFor();
+}
+
+function stateFromCloud(r,base={}){
+  return {
+    ...base,
+    score:r?.score??0, coins:r?.coins??0, correct:r?.correct??0, wrong:r?.wrong??0, answered:r?.answered??0,
+    combo:r?.combo??0, bestCombo:r?.best_combo??0, completed:r?.completed??{},
+    stageRecords:r?.stage_records??base.stageRecords??{}, music:base.music??true
+  };
+}
+
+let cloudSaveTimer=null;
+let cloudProgressReady=false;
+function cloudSaveProgressSoon(){
+  if(!playerProfile || !playerToken || !cloudProgressReady)return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(cloudSaveProgress,450);
+}
+
+async function cloudSaveProgress(){
+  if(!playerProfile || !playerToken)return;
+  const payload={
+    score:state.score||0, coins:state.coins||0, correct:state.correct||0, wrong:state.wrong||0, answered:state.answered||0,
+    combo:state.combo||0, best_combo:state.bestCombo||0, completed:state.completed||{}, stage_records:state.stageRecords||{}
+  };
+  try{
+    const response=await fetch("/api/save-progress-secure",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+playerToken},
+      body:JSON.stringify(payload)
+    });
+    await readApiJson(response);
+  }catch(e){
+    console.warn("安全云端进度保存失败，将保留本机存档：",e);
+    if(e.status===401){
+      localStorage.removeItem(PLAYER_TOKEN_KEY);
+      playerToken="";
+      cloudProgressReady=false;
+    }
+  }
+}
+
+const PLAYER_PROFILE_KEY="menghuiCurrentPlayerV1";
+const PLAYER_REGISTRY_KEY="menghuiPlayerRegistryV1";
+let playerProfile=JSON.parse(localStorage.getItem(PLAYER_PROFILE_KEY)||"null");
+function profileIdentityKey(p){return p?((p.role||"student")+":"+(p.id||p.name||"guest")):"guest";}
+function stateStorageKey(){return "gardenCanvasStudent::"+profileIdentityKey(playerProfile);}
+function readPlayerState(){
+  const scoped=localStorage.getItem(stateStorageKey());
+  if(scoped)return JSON.parse(scoped);
+  if(playerProfile){
+    const legacy=localStorage.getItem("gardenCanvasStudent");
+    if(legacy){try{return JSON.parse(legacy)}catch(e){}}
+  }
+  return null;
+}
+
+let state = readPlayerState() ||
+  {score:0, coins:0, correct:0, wrong:0, answered:0, combo:0, bestCombo:0, completed:{}, music:true};
+let current=null, pool=[], idx=0, answered=false;let stageAnswered=0;
+let compareMode="current";
+let celebrationPetals=[];
+let celebrationStart=0;
+let activeMapRepair=null;
+let mapInputLocked=false;
+let practiceMode=false;
+let pendingPracticeStage=null;
+let stageScore=0, stageCoins=0, stageCorrect=0, stageCombo=0, stageBestCombo=0;
+let displayRect={x:0,y:0,w:canvas.width,h:canvas.height};
+let ambient={
+  petals:[],leaves:[],butterflies:[],birds:[],clouds:[],
+  initialized:false,lastBird:0
+};
+
+
+
+
+let activeBgmSource="";
+function ensureSingleBackgroundMusic(){
+  const wanted=SETTINGS.bgmPath||"audio/空山箫语_Whisper_of_Empty_Mountains.mp3";
+  if(activeBgmSource===wanted && bgm.getAttribute("src")===wanted)return;
+  bgm.pause();
+  bgm.currentTime=0;
+  bgm.src=wanted;
+  bgm.loop=true;
+  activeBgmSource=wanted;
+}
+
+let musicUnlocked=false;
+function unlockBackgroundMusic(){
+  ensureSingleBackgroundMusic();
+  if(musicUnlocked)return;
+  musicUnlocked=true;
+  if(SETTINGS.musicEnabled!==false && state.music){
+    bgm.volume=Math.max(0,Math.min(1,Number(SETTINGS.musicVolume??.34)));
+    bgm.muted=false;
+    if(!bgm.paused)return;
+    bgm.play().then(()=>{
+      musicBtn.textContent="🎵 音乐：开";
+    }).catch(()=>{
+      musicUnlocked=false;
+      musicBtn.textContent="🎵 点击开启音乐";
+    });
+  }
+}
+["pointerdown","keydown","touchstart"].forEach(evt=>{
+  window.addEventListener(evt,unlockBackgroundMusic,{once:true,capture:true});
+});
+
+function applyAudioSettings(){
+  ensureSingleBackgroundMusic();
+  const musicOn=SETTINGS.musicEnabled!==false;
+  const soundOn=SETTINGS.soundEnabled!==false;
+  clickSfx.src=SETTINGS.clickSoundPath||"audio/click.wav";
+  correctSfx.src=SETTINGS.correctSoundPath||"audio/correct.wav";
+  wrongSfx.src=SETTINGS.wrongSoundPath||"audio/wrong.wav";
+  repairSfx.src=SETTINGS.repairSoundPath||SETTINGS.correctSoundPath||"audio/correct.wav";
+  bgm.volume=Math.max(0,Math.min(1,Number(SETTINGS.musicVolume??.34)));
+  [clickSfx,correctSfx,wrongSfx,repairSfx].forEach(a=>{
+    a.volume=Math.max(0,Math.min(1,Number(SETTINGS.soundVolume??.75)));
+    a.muted=!soundOn;
+    try{a.load();}catch{}
+  });
+  bgm.muted=!musicOn;
+  if(!musicOn)state.music=false;
+  musicBtn.textContent=state.music&&musicOn?"🎵 点击画面播放音乐":"🎵 音乐：关";
+}
+function playSound(audio){
+  if(SETTINGS.soundEnabled===false || !audio)return;
+  audio.muted=false;
+  audio.volume=Math.max(0,Math.min(1,Number(SETTINGS.soundVolume??.75)));
+  try{
+    audio.pause();
+    audio.currentTime=0;
+    if(audio.readyState===0)audio.load();
+    const promise=audio.play();
+    if(promise&&typeof promise.catch==="function"){
+      promise.catch(()=>{
+        setTimeout(()=>{
+          try{audio.load();audio.currentTime=0;audio.play().catch(()=>{});}catch{}
+        },60);
+      });
+    }
+  }catch{}
+}
+
+
+function updateMapStatusPanel(){
+  if(!document.getElementById("mapStatusPanel"))return;
+  const completedCount=Object.keys(state.completed||{}).length;
+  const currentStage=STAGES.find((stage,i)=>!state.completed[stage.name] && (i===0||state.completed[STAGES[i-1].name])) || STAGES[STAGES.length-1];
+  statusLocation.textContent=currentStage?currentStage.name:"全园完成";
+  statusProgress.textContent=completedCount+" / "+STAGES.length;
+  statusCoins.textContent=state.coins||0;
+  mapStatusPanel.style.display=SETTINGS.showStatusPanel===false?"none":"block";
+}
+
+function showRepairTitle(stage){
+  const el=document.getElementById("repairTitleToast");
+  if(!el||!stage)return;
+
+  const stageName=stage.name||"景点";
+  const customTitle=String(stage.completionTitle||"").trim();
+  const globalTitle=String(SETTINGS.repairTitleText||"✓ {stage}修复完成");
+  const titleTemplate=customTitle||globalTitle;
+  const title=titleTemplate.replaceAll("{stage}",stageName);
+  const line=String(stage.completionLine||"").trim();
+
+  const size=Math.max(10,Math.min(40,Number(SETTINGS.repairTitleFontSize||16)));
+  const color=SETTINGS.repairTitleColor||"#FFE7A3";
+  const opacity=Math.max(.2,Math.min(1,Number(SETTINGS.repairTitleOpacity??.92)));
+  const duration=Math.max(700,Math.min(8000,Number(SETTINGS.repairTitleDuration||1800)));
+  const fade=Math.max(100,Math.min(3000,Number(SETTINGS.repairTitleFade||700)));
+  const pos=["top","middle","bottom"].includes(SETTINGS.repairTitlePosition)?SETTINGS.repairTitlePosition:"top";
+
+  el.innerHTML="";
+  const main=document.createElement("div");
+  main.className="repair-main-title";
+  main.textContent=title;
+  el.appendChild(main);
+
+  if(line){
+    const sub=document.createElement("div");
+    sub.className="repair-sub-line";
+    sub.textContent=line;
+    el.appendChild(sub);
+  }
+
+  el.style.fontSize=size+"px";
+  el.style.color=color;
+  el.style.setProperty("--repair-opacity",String(opacity));
+  el.style.transitionDuration=fade+"ms";
+  el.className="repair-title-toast pos-"+pos;
+
+  requestAnimationFrame(()=>el.classList.add("show"));
+  clearTimeout(window.__repairTitleTimer);
+  window.__repairTitleTimer=setTimeout(()=>el.classList.remove("show"),duration);
+}
+
+function showNextStageHint(stage){
+  if(SETTINGS.showNextStageHint===false||!stage||!document.getElementById("nextStageToast"))return;
+  nextStageToast.textContent="➡ 下一站："+stage.name;
+  nextStageToast.classList.add("show");
+  setTimeout(()=>nextStageToast.classList.remove("show"),3000);
+}
+
+function save(){ localStorage.setItem(stateStorageKey(), JSON.stringify(state)); cloudSaveProgressSoon(); }
+function done(){ return STAGES.filter(s=>state.completed[s.name]).length; }
+function unlocked(){ return Math.min(done(), STAGES.length-1); }
+function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
+function shuffleQuestion(q){
+  const items=q.a.map((text,index)=>({text,correct:index===q.c}));
+  const mixed=shuffle(items);
+  return {
+    q:q.q,
+    a:mixed.map(x=>x.text),
+    c:mixed.findIndex(x=>x.correct),
+    level:q.level,
+    exp:q.exp
+  };
+}
+function showReward(text){
+  const el=document.createElement("div");
+  el.className="reward-float";
+  el.textContent=text;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1250);
+}
+function playClick(){ playSound(clickSfx); }
+
+document.addEventListener("click",event=>{
+  const button=event.target.closest("button,.btn");
+  if(!button)return;
+  if(button.classList.contains("answer"))return;
+  if(button.id==="musicBtn")return;
+  playClick();
+},true);
+
+
+function resizeCanvas(){
+  const ratio = mapImage.naturalWidth ? mapImage.naturalHeight/mapImage.naturalWidth : 2/3;
+  canvas.width = 1536;
+  canvas.height = Math.round(canvas.width*ratio);
+  drawMap();
+}
+
+
+function initAmbient(){
+  if(ambient.initialized)return;
+  ambient.initialized=true;
+  for(let i=0;i<36;i++)ambient.petals.push({
+    x:Math.random()*canvas.width,y:Math.random()*canvas.height,
+    vx:-.25+Math.random()*.6,vy:.35+Math.random()*.8,
+    size:13+Math.random()*11,phase:Math.random()*6.28
+  });
+  for(let i=0;i<22;i++)ambient.leaves.push({
+    x:Math.random()*canvas.width,y:Math.random()*canvas.height,
+    vx:-.15+Math.random()*.35,vy:.22+Math.random()*.5,
+    size:12+Math.random()*10,phase:Math.random()*6.28
+  });
+  for(let i=0;i<5;i++)ambient.butterflies.push({
+    x:Math.random()*canvas.width,y:canvas.height*(.35+Math.random()*.5),
+    vx:.45+Math.random()*.55,phase:Math.random()*6.28,size:18+Math.random()*8
+  });
+  for(let i=0;i<5;i++)ambient.clouds.push({
+    x:Math.random()*canvas.width,y:35+i*48,
+    vx:.12+Math.random()*.16,w:90+Math.random()*80
+  });
+}
+function updateAmbient(){
+  initAmbient();
+  const d=done(),ratio=d/STAGES.length;
+  ambient.petals.forEach(p=>{
+    p.x+=p.vx+Math.sin(Date.now()/900+p.phase)*.15;p.y+=p.vy;
+    if(p.y>canvas.height+20){p.y=-20;p.x=Math.random()*canvas.width}
+    if(p.x<-20)p.x=canvas.width+20;if(p.x>canvas.width+20)p.x=-20;
+  });
+  ambient.leaves.forEach(p=>{
+    p.x+=p.vx+Math.sin(Date.now()/700+p.phase)*.18;p.y+=p.vy;
+    if(p.y>canvas.height+20){p.y=-20;p.x=Math.random()*canvas.width}
+  });
+  ambient.butterflies.forEach(b=>{
+    b.x+=b.vx;b.y+=Math.sin(Date.now()/430+b.phase)*.42;
+    if(b.x>canvas.width+30){b.x=-30;b.y=canvas.height*(.35+Math.random()*.5)}
+  });
+  ambient.clouds.forEach(c=>{
+    c.x+=c.vx;if(c.x>canvas.width+c.w)c.x=-c.w;
+  });
+  if(SETTINGS.ambientBirds!==false && d>=6 && Date.now()-ambient.lastBird>8000){
+    ambient.lastBird=Date.now();
+    ambient.birds.push({x:-50,y:90+Math.random()*180,vx:2+Math.random(),life:0});
+  }
+  ambient.birds.forEach(b=>{b.x+=b.vx;b.y+=Math.sin(b.life/10)*.3;b.life++});
+  ambient.birds=ambient.birds.filter(b=>b.x<canvas.width+80);
+}
+function drawClouds(){
+  if(!ambientEnabled||SETTINGS.ambientClouds===false)return;
+  const names=["cloud_01","cloud_02","cloud_03"];
+  ctx.save();
+  ambient.clouds.forEach((c,i)=>{
+    const img=effectImages[names[i%names.length]];
+    const y=canvas.height*(.035+i*.038);
+    const w=c.w*1.35;
+    const h=w*(img.naturalHeight||110)/(img.naturalWidth||280);
+    ctx.globalAlpha=.72;
+    if(img.complete)ctx.drawImage(img,c.x,y,w,h);
+  });
+  ctx.restore();
+}
+
+function drawWaterLayer(){
+  if(!ambientEnabled||SETTINGS.waterAnimation===false)return;
+  const mask=effectImages.water_mask;
+  if(!mask||!mask.complete)return;
+
+  const frame=Math.floor(Date.now()/420)%3+1;
+  const ripple=effectImages["ripple_0"+frame];
+  if(!ripple||!ripple.complete)return;
+
+  if(!drawWaterLayer.buffer){
+    drawWaterLayer.buffer=document.createElement("canvas");
+    drawWaterLayer.buffer.width=canvas.width;
+    drawWaterLayer.buffer.height=canvas.height;
+  }
+  const off=drawWaterLayer.buffer;
+  if(off.width!==canvas.width||off.height!==canvas.height){
+    off.width=canvas.width;off.height=canvas.height;
+  }
+  const octx=off.getContext("2d");
+  octx.clearRect(0,0,off.width,off.height);
+
+  // Tile moving ripples over the whole offscreen canvas.
+  const tileW=360,tileH=90;
+  const drift=(Date.now()/32)%tileW;
+  octx.globalAlpha=.68;
+  for(let y=0;y<off.height+tileH;y+=tileH){
+    for(let x=-tileW-drift;x<off.width+tileW;x+=tileW){
+      octx.drawImage(ripple,x,y,tileW,tileH);
+    }
+  }
+
+  // Clip ripples strictly to the extracted water mask.
+  octx.globalCompositeOperation="destination-in";
+  octx.globalAlpha=1;
+  octx.drawImage(mask,0,0,off.width,off.height);
+  octx.globalCompositeOperation="source-over";
+
+  ctx.save();
+  ctx.globalAlpha=.72;
+  ctx.drawImage(off,0,0,canvas.width,canvas.height);
+  ctx.restore();
+}
+
+function drawAmbientForeground(){
+  if(!ambientEnabled)return;
+  const d=done(),ratio=d/STAGES.length;
+  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
+  if(SETTINGS.ambientPetals!==false){
+    ctx.globalAlpha=.28+ratio*.5;
+    ambient.petals.slice(0,Math.floor(14+d*1.8)).forEach(p=>{
+      ctx.save();ctx.translate(p.x,p.y);
+      ctx.rotate(Math.sin(Date.now()/600+p.phase));
+      const petalImg=effectImages.petal;
+      if(petalImg.complete)ctx.drawImage(petalImg,-p.size/2,-p.size/2,p.size,p.size);
+      ctx.restore();
+    });
+  }
+  if(SETTINGS.ambientLeaves!==false && d>=1){
+    ctx.globalAlpha=.25+ratio*.35;
+    ambient.leaves.slice(0,Math.floor(5+d)).forEach(p=>{
+      ctx.font=p.size+"px serif";ctx.fillText("🍃",p.x,p.y);
+    });
+  }
+  if(SETTINGS.ambientButterflies!==false && d>=2){
+    ctx.globalAlpha=.55+ratio*.3;
+    ambient.butterflies.slice(0,Math.min(5,1+Math.floor(d/3))).forEach(b=>{
+      ctx.font=b.size+"px serif";ctx.fillText("🦋",b.x,b.y);
+    });
+  }
+  if(SETTINGS.ambientBirds!==false){
+    ctx.globalAlpha=.65;
+    ambient.birds.forEach(b=>{ctx.font="23px serif";ctx.fillText("🐦",b.x,b.y)});
+  }
+  ctx.restore();
+}
+function drawLanternGlow(){
+  if(SETTINGS.lanternGlow===false)return;
+  const flicker=.72+Math.sin(Date.now()/260)*.18;
+  STAGES.forEach(stage=>{
+    if(!state.completed[stage.name])return;
+    const syms=repairSymbols(stage.repairEffect);
+    if(!syms.includes("🏮"))return;
+    const x=stage.x/100*canvas.width,y=stage.y/100*canvas.height;
+    ctx.save();
+    const glowImg=effectImages.gold_glow;
+    if(glowImg.complete){
+      const sz=95+Math.sin(Date.now()/260)*8;
+      ctx.globalAlpha=.58*flicker;
+      ctx.drawImage(glowImg,x-sz/2,y-sz/2,sz,sz);
+    }
+    ctx.restore();
+  });
+}
+
+function repairSymbols(effect){
+  const all={
+    gate:["🏮","🌸","🏮","🦋"],water:["💧","🐟","🪷","🌊"],lantern:["🏮","🌸","🐦","✨"],
+    bamboo:["🎋","🍃","🎋","✨"],flowers:["🌸","🦋","🌼","🌺"],scroll:["📜","🍁","📖","✨"],
+    field:["🌾","🏡","☁️","🌾"],lotus:["🪷","🐝","💧","🪷"],moon:["🌙","🏮","✨","🌊"],
+    night:["🌙","🌊","🏮","✨"],island:["🪷","🌉","🌿","✨"],tea:["🌸","🍵","☁️","✨"],
+    pavilion:["🍃","🐦","🏮","✨"],painting:["🌸","📜","🖌️","✨"],final:["🌸","🌼","🦋","✨"]
+  };
+  return all[effect]||all.flowers;
+}
+function drawStageRepair(stage,x,y,strong=false){
+  // 正式地图完成后不留下叶子、花朵、蝴蝶等装饰图示。
+  if(!strong)return;
+
+  // 只在一次性的修复动画过程中显示短暂恢复效果。
+  const effect=stage.repairEffect||"flowers";
+  ctx.save();
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+
+  const glow=ctx.createRadialGradient(x,y,3,x,y,88);
+  glow.addColorStop(0,"rgba(255,246,160,.78)");
+  glow.addColorStop(.55,"rgba(255,218,88,.38)");
+  glow.addColorStop(1,"rgba(255,210,70,0)");
+  ctx.fillStyle=glow;
+  ctx.beginPath();
+  ctx.arc(x,y,88,0,Math.PI*2);
+  ctx.fill();
+
+  const sets={
+    gate:["✨","🌸","✨"],
+    water:["✨","🪷","✨"],
+    lantern:["✨","🌺","✨"],
+    bamboo:["✨","🎋","✨"],
+    flowers:["✨","🌸","✨"],
+    scroll:["✨","📜","✨"],
+    field:["✨","🌾","✨"],
+    lotus:["✨","🪷","✨"],
+    moon:["✨","🌙","✨"],
+    night:["✨","⭐","✨"],
+    island:["✨","🌿","✨"],
+    tea:["✨","🌸","✨"],
+    pavilion:["✨","🏯","✨"],
+    painting:["✨","📜","✨"],
+    final:["✨","🌺","✨"]
+  };
+  const items=sets[effect]||sets.flowers;
+  const positions=[[-44,10],[0,32],[44,10]];
+  items.forEach((sym,i)=>{
+    ctx.font=(i===1?27:22)+"px serif";
+    ctx.globalAlpha=i===1?.96:.78;
+    ctx.fillText(sym,x+positions[i][0],y+positions[i][1]);
+  });
+  ctx.restore();
+}
+function drawMapRepairAnimation(){
+  if(!activeMapRepair)return;
+  const stage=activeMapRepair.stage;
+  const x=stage.x/100*canvas.width,y=stage.y/100*canvas.height;
+  const elapsed=performance.now()-activeMapRepair.start;
+  const duration=SETTINGS.repairAnimationDuration||6500;
+  const progress=Math.min(1,elapsed/duration);
+  const syms=repairSymbols(stage.repairEffect);
+
+  ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
+
+  // 1. 清理环境
+  if(elapsed<1300){
+    ctx.fillStyle="rgba(73,61,49,.32)";
+    ctx.beginPath();ctx.arc(x,y,88,0,Math.PI*2);ctx.fill();
+    ctx.font="36px serif";ctx.fillText("🧹　🪨　🧹",x,y-62);
+    ctx.globalAlpha=.55;ctx.font="24px serif";
+    for(let i=0;i<6;i++)ctx.fillText("·",x-55+i*22,y+35+Math.sin(Date.now()/120+i)*8);
+  }
+
+  // 2. 修补建筑
+  if(elapsed>=900&&elapsed<2800){
+    const shake=Math.sin(Date.now()/70)*3;
+    ctx.font="38px serif";ctx.fillText("🔨　🪚　🔨",x+shake,y-68);
+    ctx.strokeStyle="rgba(198,143,54,.9)";ctx.lineWidth=5;
+    ctx.beginPath();ctx.arc(x,y,48+(elapsed-900)/40,0,Math.PI*2);ctx.stroke();
+  }
+
+  // 3. 金色修缮光芒
+  if(elapsed>=2100&&elapsed<4700){
+    const r=28+Math.min(1,(elapsed-2100)/1900)*145;
+    const g=ctx.createRadialGradient(x,y,3,x,y,r);
+    g.addColorStop(0,"rgba(255,255,196,.98)");
+    g.addColorStop(.4,"rgba(255,218,82,.62)");
+    g.addColorStop(1,"rgba(255,191,22,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
+    ctx.font="34px serif";ctx.fillText("✨　✨　✨",x,y-76);
+  }
+
+  // 4. 景物恢复
+  if(elapsed>=3800){
+    drawStageRepair(stage,x,y,true);
+    ctx.globalAlpha=Math.min(1,(elapsed-3800)/900);
+    ctx.font="30px serif";
+    syms.forEach((sym,i)=>{
+      const a=i*Math.PI/2+Date.now()/1000;
+      ctx.fillText(sym,x+Math.cos(a)*88,y+Math.sin(a)*58);
+    });
+  }
+
+  // 5. 景点专属完成提示
+  if(elapsed>=5400){
+    const appear=Math.min(1,(elapsed-5400)/500);
+    const customTitle=String(stage.completionTitle||"").trim();
+    const globalTitle=String(SETTINGS.repairTitleText||"✓ {stage}修复完成");
+    const title=(customTitle||globalTitle).replaceAll("{stage}",stage.name);
+    const line=String(stage.completionLine||"").trim();
+
+    ctx.globalAlpha=appear*Math.max(.25,Math.min(1,Number(SETTINGS.repairTitleOpacity??.92)));
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+
+    // 半透明底框，避免文字与地图混在一起。
+    const titleSize=Math.max(11,Math.min(28,Number(SETTINGS.repairTitleFontSize||16)));
+    ctx.font=`bold ${titleSize}px Microsoft YaHei`;
+    const titleMeasure=ctx.measureText(title).width;
+    const lineMeasure=line?ctx.measureText(line).width*.72:0;
+    const boxWidth=Math.min(canvas.width*.72,Math.max(210,Math.max(titleMeasure,lineMeasure)+70));
+    const boxHeight=line?58:38;
+
+    // 提示位置跟随景点坐标，并使用教师后台设置的偏移量。
+    const stageX=(Number(stage.x)||50)/100*canvas.width;
+    const stageY=(Number(stage.y)||50)/100*canvas.height;
+    const offsetX=Number(stage.promptOffsetX||0);
+    const offsetY=Number(stage.promptOffsetY??-85);
+
+    let boxX=stageX-boxWidth/2+offsetX;
+    let boxY=stageY+offsetY;
+
+    // 避免提示框超出地图边缘。
+    boxX=Math.max(10,Math.min(canvas.width-boxWidth-10,boxX));
+    boxY=Math.max(10,Math.min(canvas.height-boxHeight-10,boxY));
+
+    ctx.fillStyle="rgba(91,45,35,.88)";
+    ctx.strokeStyle="rgba(229,190,110,.92)";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.roundRect(boxX,boxY,boxWidth,boxHeight,12);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font=`bold ${titleSize}px Microsoft YaHei`;
+    ctx.fillStyle=SETTINGS.repairTitleColor||"#FFE7A3";
+    ctx.shadowColor="rgba(40,20,12,.65)";
+    ctx.shadowBlur=3;
+    ctx.fillText(title,boxX+boxWidth/2,boxY+18);
+
+    if(line){
+      ctx.shadowBlur=0;
+      ctx.font=`${Math.max(10,Math.round(titleSize*.68))}px Microsoft YaHei`;
+      ctx.fillStyle="rgba(255,248,224,.92)";
+      ctx.fillText(line,boxX+boxWidth/2,boxY+41);
+    }
+    ctx.shadowBlur=0;
+    ctx.shadowColor="transparent";
+  }
+  ctx.restore();
+
+  const finalLabel=(String(stage.completionTitle||"").trim()||"修复完成")
+    .replaceAll("{stage}",stage.name)
+    .replace(stage.name,"")
+    .replace(/[✓✔🎉！!]/g,"")
+    .trim()||"修复完成";
+  const labels=["清理破损环境","修补建筑与设施","金色修缮光芒扩散","花木、流水与灯笼恢复",finalLabel];
+  const li=elapsed<1300?0:elapsed<2800?1:elapsed<4200?2:elapsed<5400?3:4;
+  const w=Math.min(650,canvas.width*.80),bx=(canvas.width-w)/2,by=canvas.height-88;
+  ctx.fillStyle="rgba(255,249,229,.96)";ctx.strokeStyle="#c69545";ctx.lineWidth=3;
+  ctx.beginPath();ctx.roundRect(bx,by,w,66,16);ctx.fill();ctx.stroke();
+  ctx.fillStyle="#8d3d31";ctx.font="bold 20px Microsoft YaHei";ctx.textAlign="center";
+  ctx.fillText(stage.name+"｜"+labels[li],canvas.width/2,by+25);
+  ctx.fillStyle="#dfd2bc";ctx.fillRect(bx+26,by+44,w-52,10);
+  ctx.fillStyle="#6fa25d";ctx.fillRect(bx+26,by+44,(w-52)*progress,10);
+}
+function drawMap(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const d=done();
+  const ratio=d/STAGES.length;
+
+  if(mapImage.complete && mapImage.naturalWidth){
+    ctx.drawImage(mapImage,0,0,canvas.width,canvas.height);
+  }else{
+    ctx.fillStyle="#f1dfbd";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  // Repair-before visual treatment.
+  if(compareMode==="before"){
+    ctx.fillStyle="rgba(110,93,72,.34)";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle="rgba(70,60,50,.13)";
+    for(let i=0;i<24;i++){
+      const x=(i*173)%canvas.width,y=(i*97)%canvas.height;
+      ctx.fillRect(x,y,70,8);
+    }
+  }else{
+    // Gradually brighten and enrich the map.
+    ctx.save();
+    ctx.globalCompositeOperation="screen";
+    ctx.fillStyle=`rgba(255,239,180,${0.05+ratio*0.20})`;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.restore();
+
+
+
+    // Additional localized water shimmer grows as more stages are completed.
+    if(SETTINGS.waterAnimation!==false && d>=2){
+      const t=Date.now()/700;
+      ctx.save();
+      ctx.strokeStyle=`rgba(210,250,255,${0.16+ratio*0.28})`;
+      ctx.lineWidth=3;
+      for(let i=0;i<10;i++){
+        const y=canvas.height*(.36+i*.037);
+        ctx.beginPath();
+        for(let x=0;x<canvas.width;x+=20){
+          const yy=y+Math.sin(x/55+t+i)*3;
+          if(x===0)ctx.moveTo(x,yy);else ctx.lineTo(x,yy);
+        }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Clouds and soft light.
+    if(d>=5){
+      ctx.save();
+      ctx.globalAlpha=.18+ratio*.18;
+      ctx.fillStyle="#fff";
+      for(let i=0;i<5;i++){
+        const x=((Date.now()/45+i*310)% (canvas.width+240))-120;
+        const y=60+i*42;
+        ctx.beginPath();
+        ctx.ellipse(x,y,90,24,0,0,Math.PI*2);
+        ctx.ellipse(x+55,y+3,70,20,0,0,Math.PI*2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // Completed-location repair effects.
+    STAGES.forEach((s,i)=>{
+      if(!state.completed[s.name])return;
+      const x=s.x/100*canvas.width,y=s.y/100*canvas.height;
+
+      // 完成后不绘制任何额外装饰图示。
+    });
+  }
+
+  drawMapRepairAnimation();
+
+  // Stage markers
+  const u=unlocked();
+  if(!activeMapRepair) STAGES.forEach((s,i)=>{
+    const x=s.x/100*canvas.width, y=s.y/100*canvas.height;
+    const ok=!!state.completed[s.name];
+    const active=i===u && !ok;
+    const markerRadius=Number(s.markerRadius||14);
+    // 地图本身已有编号圆圈，学生版不再绘制第二个实心圆。
+    // 只以同尺寸透明轮廓显示状态，避免大小不一致。
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x,y,markerRadius,0,Math.PI*2);
+    ctx.lineWidth=ok?3:active?3:2;
+    ctx.strokeStyle=ok?"rgba(221,154,43,.95)":active?"rgba(255,225,95,.98)":"rgba(90,78,70,.35)";
+    ctx.stroke();
+    if(ok){
+      ctx.fillStyle="#fff";
+      ctx.font="bold 12px Microsoft YaHei";
+      ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText("✓",x+markerRadius*.62,y-markerRadius*.62);
+    }
+    if(active){
+      ctx.beginPath();ctx.arc(x,y,markerRadius+5,0,Math.PI*2);
+      ctx.lineWidth=2;ctx.strokeStyle="rgba(255,224,104,.82)";ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // Final celebration petals.
+  if(d===STAGES.length && compareMode!=="before"){
+    if(!celebrationStart)celebrationStart=Date.now();
+    if(celebrationPetals.length===0){
+      for(let i=0;i<80;i++){
+        celebrationPetals.push({
+          x:Math.random()*canvas.width,
+          y:Math.random()*-canvas.height,
+          speed:1.2+Math.random()*2.4,
+          drift:-1+Math.random()*2,
+          size:18+Math.random()*18,
+          symbol:Math.random()>.25?"🌸":"✨"
+        });
+      }
+    }
+    celebrationPetals.forEach(p=>{
+      p.y+=p.speed;p.x+=p.drift;
+      if(p.y>canvas.height+30){p.y=-30;p.x=Math.random()*canvas.width;}
+      ctx.font=p.size+"px serif";ctx.fillText(p.symbol,p.x,p.y);
+    });
+  }
+}
+
+function canvasPoint(evt){
+  const r=canvas.getBoundingClientRect();
+  const touch=evt.touches?evt.touches[0]:evt;
+  return {x:(touch.clientX-r.left)*canvas.width/r.width,y:(touch.clientY-r.top)*canvas.height/r.height};
+}
+function hitStage(pt){
+  let best=null,dist=Infinity;
+  STAGES.forEach((s,i)=>{
+    const dx=pt.x-s.x/100*canvas.width,dy=pt.y-s.y/100*canvas.height,d=Math.hypot(dx,dy);
+    const hitRadius=Number(s.hitRadius||Math.max(38,Number(s.markerRadius||14)+18));
+    if(d<hitRadius && d<dist){best={s,i};dist=d;}
+  });
+  return best;
+}
+canvas.addEventListener("click",e=>{
+  if(mapInputLocked)return;
+  playClick();
+  const hit=hitStage(canvasPoint(e));
+  if(!hit)return;
+  const u=unlocked(),ok=!!state.completed[hit.s.name];
+  if(hit.i>u&&!ok){alert("请先完成前一关。");return;}
+  if(ok){
+    if(!SETTINGS.allowPractice){
+      alert("此地点已经修复，请继续挑战当前开放关卡。");
+      return;
+    }
+    pendingPracticeStage=hit.s;
+    practiceTitle.textContent=hit.s.name+"已经修复";
+    practiceModal.classList.add("show");
+    return;
+  }
+  openStage(hit.s,false);
+});
+
+
+function canShowPerson(stage){
+  if(stage.personDisplay==="immediate") return true;
+  if(stage.personDisplay==="after_completion") return !!state.completed[stage.name];
+  return false;
+}
+function personLabel(stage){
+  return canShowPerson(stage) ? stage.person : "？？？";
+}
+function renderCollection(){
+  personCollection.innerHTML="";
+  STAGES.forEach((stage,stageIndex)=>{
+    const show=canShowPerson(stage);
+    const card=document.createElement("div");
+    card.className="person-card"+(show?" unlocked":" locked-person");
+    card.innerHTML='<div class="person-icon">'+(show?stage.icon:"❔")+'</div>'+
+      '<b>'+stage.name+'</b><br><span>'+(show?stage.person:"尚未解锁")+'</span>';
+    if(show){
+      card.addEventListener("click",()=>openPersonProfile(stage,stageIndex));
+      card.title="点击查看人物资料";
+    }
+    personCollection.appendChild(card);
+  });
+}
+function characterForStage(stage,index){
+  return CHARACTERS.find(c=>c.stage===stage.name)||
+    {name:stage.person,stage:stage.name,icon:stage.icon||"👤",identity:"暂无资料",personality:"暂无资料",stories:"暂无资料",poems:"暂无资料"};
+}
+function openPersonProfile(stage,index){
+  const c=characterForStage(stage,index);
+  personDetailName.textContent=c.name||stage.person;
+  personDetailTitle.textContent=(c.name||stage.person)+"｜人物图鉴";
+  if(c.image){
+    personDetailVisual.innerHTML='<img class="detail-image" alt="'+(c.name||stage.person)+'">';
+    personDetailVisual.querySelector("img").src=c.image;
+  }else{
+    personDetailVisual.innerHTML='<div id="personDetailIcon" class="profile-icon">'+(c.icon||stage.icon||"👤")+'</div>';
+  }
+  personDetailStage.textContent="相关景点："+stage.name;
+  personIdentity.textContent=c.identity||"暂无资料";
+  personPersonality.textContent=c.personality||"暂无资料";
+  personStories.textContent=c.stories||"暂无资料";
+  personPoems.textContent=c.poems||"暂无资料";
+  personDetailModal.classList.add("show");
+}
+closePersonDetail.addEventListener("click",()=>personDetailModal.classList.remove("show"));
+
+function renderPoetry(){
+  poetryGrid.innerHTML="";
+  POEMS.forEach((p,i)=>{
+    const unlocked=!!state.completed[p.relatedStage];
+    const card=document.createElement("div");
+    card.className="poetry-card"+(unlocked?"":" locked-person");
+    card.innerHTML='<b>'+(unlocked?p.title:"🔒 尚未解锁")+'</b>'+
+      '<div class="poetry-excerpt">'+(unlocked?p.excerpt:"完成相关景点后解锁")+'</div>'+
+      '<small>'+(unlocked?"作者："+p.author:"相关景点："+p.relatedStage)+'</small>';
+    if(unlocked)card.addEventListener("click",()=>openPoetry(p));
+    poetryGrid.appendChild(card);
+  });
+}
+function openPoetry(p){
+  poetryDetailTitle.textContent=p.title;
+  poetryDetailAuthor.textContent="作者："+p.author+"｜相关景点："+p.relatedStage;
+  poetryDetailImageWrap.innerHTML=p.image?'<img class="poetry-detail-image" alt="'+p.title+'">':"";
+  if(p.image)poetryDetailImageWrap.querySelector("img").src=p.image;
+  poetryDetailExcerpt.textContent=p.excerpt||"";
+  poetryDetailBackground.textContent=p.background||"暂无资料";
+  poetryDetailMeaning.textContent=p.meaning||"暂无资料";
+  poetryDetailModal.classList.add("show");
+}
+poetryBtn.addEventListener("click",()=>{renderPoetry();poetryModal.classList.add("show")});
+closePoetry.addEventListener("click",()=>poetryModal.classList.remove("show"));
+closePoetryDetail.addEventListener("click",()=>poetryDetailModal.classList.remove("show"));
+function startStableMapRepair(stage,callback){
+  if(activeMapRepair)return;
+  mapInputLocked=true;
+  activeMapRepair={stage,start:performance.now(),callback};
+  document.querySelector(".canvas-wrap").classList.add("repairing");
+  mapRepairStatus.classList.remove("hidden");
+  mapRepairStatus.textContent="正在修复 "+stage.name+"，动画直接显示在地图景点位置。";
+  setTimeout(()=>{
+    const cb=activeMapRepair&&activeMapRepair.callback;
+    activeMapRepair=null;
+    mapInputLocked=false;
+    document.querySelector(".canvas-wrap").classList.remove("repairing");
+    mapRepairStatus.classList.add("hidden");
+    if(cb)cb();
+  },(SETTINGS.repairAnimationDuration||6500)+150);
+}
+function updateStageLabel(){
+  const d=done();
+  let label="待修复";
+  if(d>=13)label="梦回大观园";
+  else if(d>=8)label="繁华重现";
+  else if(d>=4)label="修复进行中";
+  mapStageLabel.textContent=label;
+  finalBanner.classList.toggle("show",d===STAGES.length && compareMode!=="before");
+}
+function animationLoop(){
+  drawMap();
+  requestAnimationFrame(animationLoop);
+}
+function renderStats(){
+  updateMapStatusPanel();
+  const d=done();
+  score.textContent=state.score;
+  coins.textContent=state.coins;
+  correctCount.textContent=state.correct;
+  wrongCount.textContent=state.wrong;
+  comboCount.textContent=state.combo;
+  doneCount.textContent=d;
+  overallBar.style.width=(d/STAGES.length*100)+"%";
+  drawMap();
+  renderCollection();
+  updateStageLabel();
+  if(d===STAGES.length)setTimeout(showResult,300);
+}
+function openStage(s){
+  current=s;
+  state.stageRecords=state.stageRecords||{};
+  const savedRound=!practiceMode ? state.stageRecords.__activeRound : null;
+  if(savedRound && savedRound.stageName===s.name && !state.completed[s.name] && Array.isArray(savedRound.pool) && savedRound.pool.length){
+    pool=savedRound.pool;
+    idx=Math.max(0,Math.min(Number(savedRound.nextIndex||0),pool.length));
+    stageAnswered=Number(savedRound.stageAnswered||idx||0);
+    stageScore=Number(savedRound.stageScore||0);
+    stageCoins=Number(savedRound.stageCoins||0);
+    stageCorrect=Number(savedRound.stageCorrect||0);
+    stageCombo=Number(savedRound.stageCombo||0);
+    stageBestCombo=Number(savedRound.stageBestCombo||0);
+    if(idx>=pool.length){
+      finishCurrentStage();
+      return;
+    }
+  }else{
+    stageAnswered=0;
+    pool=shuffle(s.questions).slice(0,Math.min(5,s.questions.length)).map(shuffleQuestion);
+    idx=0;
+    stageScore=0;stageCoins=0;stageCorrect=0;stageCombo=0;stageBestCombo=0;
+    if(!practiceMode){
+      state.stageRecords.__activeRound={stageName:s.name,pool:pool,nextIndex:0,stageAnswered:0,stageScore:0,stageCoins:0,stageCorrect:0,stageCombo:0,stageBestCombo:0,updated:new Date().toISOString()};
+      save();
+    }
+  }
+  quizModal.classList.add("show");showQuestion();
+}
+function persistActiveRound(nextIndex){
+  if(practiceMode||!current)return;
+  state.stageRecords=state.stageRecords||{};
+  state.stageRecords.__activeRound={
+    stageName:current.name,pool:pool,nextIndex:nextIndex,
+    stageAnswered:stageAnswered,stageScore:stageScore,stageCoins:stageCoins,stageCorrect:stageCorrect,
+    stageCombo:stageCombo,stageBestCombo:stageBestCombo,updated:new Date().toISOString()
+  };
+}
+function showQuestion(){
+  answered=false;nextBtn.classList.add("hidden");
+  const q=pool[idx];
+  stageTitle.textContent=current.n+". "+current.name;
+  if(document.getElementById("stageSceneImage")){
+    stageSceneImage.src=current.image||"";
+    stageSceneImage.alt=current.name+"景点插图";
+    stageSceneImage.style.display=current.image?"block":"none";
+  }
+  stagePerson.textContent=(practiceMode?"【练习模式】 ":"")+
+    "人物线索："+(current.clue||"完成关卡后解锁代表人物。")+
+    "｜代表人物："+personLabel(current);
+  repairText.textContent="修复任务："+current.repair;
+  questionText.textContent=(idx+1)+". "+q.q;
+  quizBar.style.width=(idx/pool.length*100)+"%";
+  feedback.textContent="请选择答案。";
+  answers.innerHTML="";
+  q.a.forEach((a,i)=>{
+    const b=document.createElement("button");b.className="answer";
+    b.textContent=String.fromCharCode(65+i)+". "+a;
+    b.addEventListener("click",()=>choose(i,b));answers.appendChild(b);
+  });
+}
+function choose(i,b){
+  if(answered)return;
+  answered=true;stageAnswered++;
+  if(!practiceMode || SETTINGS.practiceRewards) state.answered++;
+  const q=pool[idx],buttons=[...answers.querySelectorAll(".answer")];
+  buttons[q.c].classList.add("correct");
+
+  if(i===q.c){
+    playSound(correctSfx);
+    stageCorrect++;
+    if(!practiceMode || SETTINGS.practiceRewards){
+      state.correct++;
+      state.combo++;
+      state.bestCombo=Math.max(state.bestCombo,state.combo);
+      stageCombo++;
+      stageBestCombo=Math.max(stageBestCombo,stageCombo);
+
+      let gainedScore=SETTINGS.scorePerCorrect||10;
+      let gainedCoins=SETTINGS.coinsPerCorrect||20;
+      if(state.combo>=(SETTINGS.comboStart||3)){
+        const bonus=Math.min(
+          SETTINGS.comboBonusMax||20,
+          (state.combo-(SETTINGS.comboStart||3)+1)*(SETTINGS.comboBonusStep||5)
+        );
+        gainedScore+=bonus;
+        gainedCoins+=bonus;
+      }
+      state.score+=gainedScore;
+      state.coins+=gainedCoins;
+      stageScore+=gainedScore;
+      stageCoins+=gainedCoins;
+      feedback.innerHTML="✅ 正确！获得 <b>"+gainedScore+"分</b> 与 <b>"+gainedCoins+"金币</b>。<br>"+q.exp;
+      showReward("+"+gainedScore+" ⭐  +"+gainedCoins+" 🪙");
+    }else{
+      feedback.innerHTML="✅ 回答正确！练习模式不增加得分与金币。<br>"+q.exp;
+    }
+  }else{
+    playSound(wrongSfx);
+    if(!practiceMode || SETTINGS.practiceRewards){
+      state.wrong++;
+      state.combo=0;
+      stageCombo=0;
+    }
+    b.classList.add("wrong");
+    feedback.innerHTML="❌ 正确答案："+q.a[q.c]+"<br>"+q.exp;
+    if(!practiceMode || SETTINGS.practiceRewards) showReward("连击中断");
+  }
+
+  persistActiveRound(idx+1);
+  save();
+  quizBar.style.width=((idx+1)/pool.length*100)+"%";
+  nextBtn.classList.remove("hidden");
+  nextBtn.textContent=idx===pool.length-1?"完成本关":"下一题";
+  renderStats();
+}
+function finishCurrentStage(){
+    if(practiceMode){
+      save();
+      quizModal.classList.remove("show");
+      settlementTitle.textContent=current.name+"练习完成";
+      settlementMessage.textContent="本次为复习练习，修复成果维持不变";
+      settlementPerson.textContent="📖 本次练习不计入正式奖励";
+      stageScoreResult.textContent="不计分";
+      stageCoinsResult.textContent="不奖励";
+      stageCorrectResult.textContent=stageCorrect+" / "+pool.length;
+      stageComboResult.textContent=stageBestCombo;
+      const ratio=stageCorrect/pool.length;
+      settlementStars.textContent=ratio===1?"★★★":ratio>=.6?"★★☆":"★☆☆";
+      nextStageBtn.classList.add("hidden");
+      continueMapBtn.textContent="返回地图";
+      settlementModal.classList.add("show");
+    showRepairTitle(current);
+    const nextStage=STAGES[currentIndex+1];
+    if(nextStage)setTimeout(()=>showNextStageHint(nextStage),700);
+      renderStats();
+      return;
+    }
+
+    const firstClear=!state.completed[current.name];
+    if(firstClear){
+      state.score+=(SETTINGS.firstClearScore||50);
+      state.coins+=(SETTINGS.firstClearCoins||100);
+      stageScore+=(SETTINGS.firstClearScore||50);
+      stageCoins+=(SETTINGS.firstClearCoins||100);
+    }
+    state.completed[current.name]=true;
+    state.stageRecords=state.stageRecords||{};
+    delete state.stageRecords.__activeRound;
+    state.stageRecords[current.name]={
+      completed:true,
+      lastScore:stageScore,
+      lastCoins:stageCoins,
+      correct:stageCorrect,
+      answered:stageAnswered,
+      updated:new Date().toLocaleString()
+    };
+    save();
+    quizModal.classList.remove("show");
+
+    const customCompletionTitle=String(current.completionTitle||"").trim();
+    settlementTitle.textContent=(customCompletionTitle||"✓ {stage}修复完成").replaceAll("{stage}",current.name);
+    settlementMessage.textContent=String(current.completionLine||"").trim()||current.name+"已恢复昔日风华";
+    settlementPerson.textContent=current.personDisplay==="hidden"?
+      "代表人物暂不公开":
+      "🎉 解锁代表人物："+current.person;
+    stageScoreResult.textContent=stageScore+" 分";
+    stageCoinsResult.textContent=stageCoins+" 枚";
+    stageCorrectResult.textContent=stageCorrect+" / "+pool.length;
+    stageComboResult.textContent=stageBestCombo;
+
+    const ratio=stageCorrect/pool.length;
+    settlementStars.textContent=ratio===1?"★★★":ratio>=.6?"★★☆":"★☆☆";
+    const currentIndex=STAGES.findIndex(s=>s.name===current.name);
+    const hasNext=currentIndex>=0 && currentIndex<STAGES.length-1;
+    nextStageBtn.classList.toggle("hidden",!hasNext || !SETTINGS.autoNextStage);
+    nextStageBtn.textContent=hasNext?"进入下一关":"";
+    continueMapBtn.textContent=hasNext?"返回地图":"查看修复成果";
+    settlementModal.classList.remove("show");
+    startStableMapRepair(current,()=>{
+      renderStats();
+      settlementModal.classList.add("show");
+    });
+    renderStats();
+
+}
+nextBtn.addEventListener("click",()=>{
+  playClick();
+  if(idx<pool.length-1){idx++;showQuestion();}
+  else finishCurrentStage();
+});
+closeQuiz.addEventListener("click",()=>{quizModal.classList.remove("show")});
+practiceBtn.addEventListener("click",()=>{
+  
+  practiceModal.classList.remove("show");
+  if(pendingPracticeStage) openStage(pendingPracticeStage,true);
+});
+cancelPracticeBtn.addEventListener("click",()=>{
+  practiceModal.classList.remove("show");pendingPracticeStage=null;
+});
+nextStageBtn.addEventListener("click",()=>{
+  
+  settlementModal.classList.remove("show");
+  const i=STAGES.findIndex(s=>s.name===current.name);
+  if(i>=0 && i<STAGES.length-1) openStage(STAGES[i+1],false);
+});
+continueMapBtn.addEventListener("click",()=>{
+  settlementModal.classList.remove("show");practiceMode=false;
+});
+beforeBtn.addEventListener("click",()=>{compareMode="before";updateStageLabel();drawMap()});
+afterBtn.addEventListener("click",()=>{compareMode="current";updateStageLabel();drawMap()});
+musicBtn.addEventListener("click",()=>{
+  if(SETTINGS.musicEnabled===false){
+    state.music=false;save();bgm.pause();musicBtn.textContent="🎵 音乐：关";
+    alert("教师版已关闭背景音乐。");
+    return;
+  }
+  state.music=!state.music;save();
+  bgm.volume=Math.max(0,Math.min(1,Number(SETTINGS.musicVolume??.34)));
+  if(state.music){musicUnlocked=true;bgm.muted=false;bgm.play().then(()=>musicBtn.textContent="🎵 音乐：开").catch(()=>musicBtn.textContent="🎵 点击开启音乐");}
+  else{bgm.pause();musicBtn.textContent="🎵 音乐：关";}
+});
+resetBtn.addEventListener("click",()=>{
+  playClick();
+  if(confirm("确定清除全部进度吗？")){
+    state={score:0,coins:0,correct:0,wrong:0,answered:0,combo:0,bestCombo:0,completed:{},music:true};save();renderStats();
+  }
+});
+function showResult(){
+  let rate=state.answered?state.correct/state.answered:0;
+  finalTitle.textContent=rate>=.9?"红楼修园大师":rate>=.75?"大观园修缮名匠":"大观园守护者";
+  finalScore.textContent=state.score+" 分";
+  finalCoins.textContent=state.coins+" 枚";
+  finalAccuracy.textContent=state.answered?Math.round(state.correct/state.answered*100)+"%":"0%";
+  resultModal.classList.add("show");
+}
+backMap.addEventListener("click",()=>resultModal.classList.remove("show"));
+
+
+function renderGuide(){
+  guideGrid.innerHTML="";
+  STAGES.forEach(stage=>{
+    const unlocked=!!state.completed[stage.name];
+    const card=document.createElement("button");
+    card.className="guide-card"+(unlocked?"":" locked");
+    card.innerHTML=(stage.image?'<img class="guide-thumb" src="'+stage.image+'" alt="'+stage.name+'景点插图">':'')+'<div class="big">'+(unlocked?stage.icon:"🔒")+'</div><b>'+stage.n+'. '+stage.name+'</b><br><small>'+(unlocked?"已解锁":"完成关卡后解锁")+'</small>';
+    if(unlocked)card.addEventListener("click",()=>openKnowledgeCard(stage));
+    guideGrid.appendChild(card);
+  });
+}
+function openKnowledgeCard(stage){
+  const k=stage.knowledgeCard||{};
+  cardTitle.textContent=stage.name+"｜知识卡";
+  cardIcon.textContent=stage.icon||"🏯";
+  if(document.getElementById("cardSceneImage")){
+    cardSceneImage.src=stage.image||"";
+    cardSceneImage.alt=stage.name+"景点插图";
+    cardSceneImage.style.display=stage.image?"block":"none";
+  }
+  cardIntro.textContent=k.intro||"暂无简介。";
+  cardMeaning.textContent=k.meaning||"暂无文学意义说明。";
+  cardRepair.textContent=k.repairResult||stage.repair||"修复完成。";
+  cardModal.classList.add("show");
+}
+guideBtn.addEventListener("click",()=>{renderGuide();guideModal.classList.add("show")});
+closeGuide.addEventListener("click",()=>guideModal.classList.remove("show"));
+closeCard.addEventListener("click",()=>cardModal.classList.remove("show"));
+
+function effectSymbols(effect){
+  const map={
+    gate:["🏯","✨ 🏮 🌸 🦋 ✨"],water:["🌊","💧 🐟 ✨ 🌉 💧"],lantern:["🏠","🏮 🌸 🐦 ✨ 🏮"],
+    bamboo:["🎋","🍃 🎋 ✨ 🍃 🎋"],flowers:["🌼","🌸 🦋 🌼 ✨ 🌺"],scroll:["📜","📖 🍁 ✨ 📜 🍁"],
+    field:["🌾","🌾 🏡 ☁️ ✨ 🌾"],lotus:["🪷","🪷 🐝 💧 ✨ 🪷"],moon:["🌕","🌙 ✨ 🌊 🏮 🌙"],
+    night:["🌙","🌊 🌙 🏮 ✨ 🌊"],island:["🏝️","🪷 🌉 ✨ 🌿 🪷"],tea:["🫖","🌸 🍵 ☁️ ✨ 🌸"],
+    pavilion:["🏯","🍃 🐦 ✨ 🏮 🍃"],painting:["🖼️","🌸 📜 ✨ 🖌️ 🌸"],final:["🌺","🌸 🌼 🌺 🦋 ✨ 🏯 ✨"]
+  };
+  return map[effect]||["🏯","✨ 🌸 ✨ 🏮 ✨"];
+}
+function showRepairCinema(stage,doneCallback){
+  const symbols=effectSymbols(stage.repairEffect);
+  repairSymbol.textContent=symbols[0];
+  if(document.getElementById("repairSceneImage")){
+    repairSceneImage.src=stage.image||"";
+    repairSceneImage.alt=stage.name+"修复插图";
+    repairSceneImage.style.display=stage.image?"block":"none";
+  }
+  repairParticles.textContent=symbols[1];
+  repairCinemaTitle.textContent=stage.name+"修复完成";
+  repairCinemaText.textContent=(stage.knowledgeCard&&stage.knowledgeCard.repairResult)||stage.repair;
+  repairCinema.classList.add("show");
+  finishRepairCinema.onclick=()=>{
+    repairCinema.classList.remove("show");
+    if(doneCallback)doneCallback();
+  };
+}
+
+function learningRows(){
+  state.stageRecords=state.stageRecords||{};
+  return STAGES.map(s=>{
+    const r=state.stageRecords[s.name]||{};
+    return {stage:s.name,completed:!!state.completed[s.name],correct:r.correct||0,answered:r.answered||0,score:r.lastScore||0,coins:r.lastCoins||0,updated:r.updated||""};
+  });
+}
+function renderLearningRecord(){
+  const rows=learningRows(),doneRows=rows.filter(r=>r.completed);
+  const accuracy=state.answered?Math.round(state.correct/state.answered*100):0;
+  recordContent.innerHTML=(playerProfile?'<b>玩家：</b>'+playerProfile.name+'　<b>身份：</b>'+(playerProfile.role==='student'?'学生':'教职员')+(playerProfile.role==='student'?'　<b>班级：</b>'+playerProfile.className:'　<b>部门／职务：</b>'+playerProfile.department)+'<br>':'')+'<b>总得分：</b>'+state.score+'　<b>金币：</b>'+state.coins+
+    '　<b>总正确率：</b>'+accuracy+'%<br><b>完成关卡：</b>'+doneRows.length+' / '+STAGES.length+
+    '<hr>'+rows.map((r,i)=>(i+1)+'. '+r.stage+'：'+(r.completed?'已完成，'+r.correct+'/'+r.answered+'题正确':'未完成')).join('<br>');
+}
+reportBtn.addEventListener("click",()=>{renderLearningRecord();recordModal.classList.add("show")});
+closeRecord.addEventListener("click",()=>recordModal.classList.remove("show"));
+downloadRecordBtn.addEventListener("click",()=>{
+  const lines=[]; if(playerProfile){lines.push(["姓名",playerProfile.name],["身份",playerProfile.role==="student"?"学生":"教职员"],[playerProfile.role==="student"?"班级":"部门／职务",playerProfile.role==="student"?playerProfile.className:playerProfile.department],[playerProfile.role==="student"?"学号":"教职员编号",playerProfile.id],[]);} lines.push(["关卡","完成状态","正确题数","答题数","本关得分","本关金币","更新时间"]);
+  learningRows().forEach(r=>lines.push([r.stage,r.completed?"已完成":"未完成",r.correct,r.answered,r.score,r.coins,r.updated]));
+  lines.push([]);lines.push(["总得分",state.score]);lines.push(["总金币",state.coins]);lines.push(["总正确",state.correct]);lines.push(["总答题",state.answered]);
+  const csv="\ufeff"+lines.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="梦回大观园_"+(playerProfile?playerProfile.name+"_":"")+"学习记录.csv";a.click();URL.revokeObjectURL(url);
+});
+
+
+function sanitizeProfileText(v){return String(v||"").trim().replace(/[<>]/g,"");}
+function setRole(role){
+  playerProfileForm.dataset.role=role;
+  document.querySelectorAll('input[name="rolePick"]').forEach(r=>r.checked=r.value===role);
+  studentPanel.classList.toggle("selected",role==="student");
+  staffPanel.classList.toggle("selected",role==="staff");
+  profileError.textContent="";
+}
+function renderPlayerEntry(){
+  if(playerProfile && playerToken){
+    profileGate.style.display="none";gameShell.style.display="block";
+    const extra=playerProfile.role==="student"?(playerProfile.className?" · "+playerProfile.className:""):(playerProfile.department?" · "+playerProfile.department:"");
+    currentPlayerBadge.textContent=(playerProfile.avatar==="男复园使"?"👨🏻 ":"👩🏻 ")+playerProfile.name+extra;
+  }else{
+    profileGate.style.display="block";gameShell.style.display="none";
+    if(playerProfile && !playerToken){
+      profileError.textContent="为了保护云端存档，请重新输入资料与 4 位 PIN 登录。";
+    }
+  }
+}
+document.querySelectorAll('input[name="rolePick"]').forEach(r=>r.addEventListener("change",()=>setRole(r.value)));
+document.querySelectorAll('.panel-start').forEach(btn=>btn.addEventListener('click',()=>setRole(btn.dataset.role)));
+studentPanel.addEventListener('click',e=>{if(!e.target.closest('.avatar-option')&&!e.target.closest('input'))setRole('student')});
+staffPanel.addEventListener('click',e=>{if(!e.target.closest('.avatar-option')&&!e.target.closest('input'))setRole('staff')});
+playerProfileForm.addEventListener("submit",async e=>{
+  e.preventDefault();
+  const role=playerProfileForm.dataset.role||document.querySelector('input[name="rolePick"]:checked')?.value||"student";
+  const avatar=document.querySelector(`input[name="${role}Avatar"]:checked`)?.value||"男复园使";
+  let p,pin,pin2;
+  if(role==="student"){
+    p={role,name:sanitizeProfileText(studentName.value),className:sanitizeProfileText(studentClass.value),id:sanitizeProfileText(studentId.value),avatar};pin=studentPin.value.trim();pin2=studentPin2.value.trim();
+    if(!p.name||!p.className||!p.id){profileError.textContent="请完整填写学生姓名、班级和学生学号。";return;}
+  }else{
+    p={role,name:sanitizeProfileText(staffName.value),department:sanitizeProfileText(staffDept.value),id:sanitizeProfileText(staffId.value),avatar};pin=staffPin.value.trim();pin2=staffPin2.value.trim();
+    if(!p.name||!p.department||!p.id){profileError.textContent="请完整填写教职员姓名、部门／职务和教职员编号。";return;}
+  }
+  if(!/^\d{4}$/.test(pin)){profileError.textContent="PIN 必须是 4 位数字。";return;}
+  if(pin!==pin2){profileError.textContent="两次输入的 PIN 不一致。";return;}
+  profileError.textContent="正在连接云端资料……";
+  try{
+    p=await cloudLoginOrRegister(p,pin);
+    // 登录成功后先通过安全 API 读取该玩家进度，再进入地图。避免初始 0 分覆盖云端旧进度。
+    const remote=await cloudLoadProgressFor();
+    playerProfile=p;
+    localStorage.setItem(PLAYER_PROFILE_KEY,JSON.stringify(p));
+    const localKey="gardenCanvasStudent::"+profileIdentityKey(p);
+    if(remote){
+      const previous=(()=>{try{return JSON.parse(localStorage.getItem(localKey)||"null")}catch(e){return null}})()||{};
+      localStorage.setItem(localKey,JSON.stringify(stateFromCloud(remote,previous)));
+    }
+    location.reload();
+  }catch(err){
+    console.error(err);
+    profileError.textContent=(err.code==="PIN_INCORRECT" || /PIN 不正确/.test(err.message||""))?"这个编号已经登记，但 PIN 不正确。":"无法连接安全云端服务，请稍后再试。";
+  }
+});
+switchPlayerBtn.addEventListener("click",()=>{
+  if(confirm("要返回资料登记页面切换玩家吗？目前玩家的游戏进度会保留在这台设备。")){localStorage.removeItem(PLAYER_PROFILE_KEY);localStorage.removeItem(PLAYER_TOKEN_KEY);playerToken="";location.reload();}
+});
+setRole("student");renderPlayerEntry();
+// 登录后再次以云端记录校准本机状态。校准完成前暂停云端写入，避免初始 0 分覆盖已有进度。
+if(playerProfile?.dbId && playerToken){
+  cloudLoadProgress().then(r=>{
+    if(r){
+      state=stateFromCloud(r,state);
+      localStorage.setItem(stateStorageKey(),JSON.stringify(state));
+      renderStats();drawMap();
+    }
+  }).catch(e=>{
+    console.warn("安全云端进度读取失败，将保留本机存档：",e);
+    if(e.status===401){
+      localStorage.removeItem(PLAYER_TOKEN_KEY);
+      playerToken="";
+      cloudProgressReady=false;
+      renderPlayerEntry();
+      profileError.textContent="登录已过期，请重新输入资料与 4 位 PIN。";
+    }
+  }).finally(()=>{if(playerToken)cloudProgressReady=true;});
+}else{cloudProgressReady=false;}
+
+mapImage.onload=()=>{resizeCanvas();renderStats();animationLoop();};
+window.addEventListener("resize",drawMap);
+renderStats();
+</script>
+</body></html>
