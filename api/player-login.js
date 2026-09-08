@@ -2,53 +2,38 @@ const crypto = require("crypto");
 
 function json(res, status, data) {
   res.statusCode = status;
-  res.setHeader(
-    "Content-Type",
-    "application/json; charset=utf-8"
-  );
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(data));
 }
 
 async function supabaseRequest(path, options = {}) {
-  const base = String(
-    process.env.SUPABASE_URL || ""
-  ).replace(/\/+$/, "");
-
+  const base = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const key = process.env.SUPABASE_SECRET_KEY;
 
   if (!base || !key) {
     throw new Error("Supabase 环境变量尚未设置");
   }
 
-  const response = await fetch(
-    `${base}/rest/v1/${path}`,
-    {
-      ...options,
-      headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-        ...(options.headers || {})
-      }
+  const response = await fetch(`${base}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      Prefer: options.prefer || "return=representation",
+      ...(options.headers || {})
     }
-  );
+  });
 
   const text = await response.text();
 
   if (!response.ok) {
-    throw new Error(
-      `Supabase ${response.status}: ${text}`
-    );
+    throw new Error(`Supabase ${response.status}: ${text}`);
   }
 
   return text ? JSON.parse(text) : null;
 }
-
-// --------------------------------------------------
-// 与目前学生版 index.html 使用相同的 PIN hash
-// 这样现有玩家不用重新注册
-// --------------------------------------------------
 
 function hashPin(pin) {
   return crypto
@@ -57,9 +42,14 @@ function hashPin(pin) {
     .digest("hex");
 }
 
-// --------------------------------------------------
-// 建立玩家登录 token
-// --------------------------------------------------
+function safeEqual(a, b) {
+  const aa = Buffer.from(String(a || ""));
+  const bb = Buffer.from(String(b || ""));
+
+  if (aa.length !== bb.length) return false;
+
+  return crypto.timingSafeEqual(aa, bb);
+}
 
 function createPlayerToken(player) {
   const secret =
@@ -70,16 +60,13 @@ function createPlayerToken(player) {
     throw new Error("玩家 Session Secret 尚未设置");
   }
 
-  const now = Date.now();
-
   const payload = Buffer.from(
     JSON.stringify({
+      type: "player",
       player_id: Number(player.id),
       role: String(player.role || ""),
       external_id: String(player.external_id || ""),
-
-      // 12 小时有效
-      exp: now + 12 * 60 * 60 * 1000
+      exp: Date.now() + 12 * 60 * 60 * 1000
     })
   ).toString("base64url");
 
@@ -91,12 +78,13 @@ function createPlayerToken(player) {
   return `${payload}.${signature}`;
 }
 
-// --------------------------------------------------
-// API
-// --------------------------------------------------
+function cleanText(value, maxLen = 60) {
+  return String(value || "")
+    .trim()
+    .slice(0, maxLen);
+}
 
 module.exports = async function handler(req, res) {
-
   if (req.method !== "POST") {
     return json(res, 405, {
       ok: false,
@@ -105,28 +93,41 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-
     const body =
       typeof req.body === "string"
         ? JSON.parse(req.body || "{}")
         : (req.body || {});
 
-    const role =
-      String(body.role || "").trim();
+    const role = cleanText(body.role, 20);
+    const name = cleanText(body.name, 40);
 
-    const externalId =
-      String(
-        body.external_id ||
-        body.externalId ||
-        ""
-      ).trim();
+    const externalId = cleanText(
+      body.external_id || body.externalId,
+      40
+    );
 
-    const pin =
-      String(body.pin || "").trim();
+    const className = cleanText(
+      body.class_name || body.className,
+      40
+    );
 
-    // ------------------------------------------------
-    // 基本检查
-    // ------------------------------------------------
+    const department = cleanText(
+      body.department,
+      60
+    );
+
+    const avatar = cleanText(
+      body.avatar,
+      30
+    );
+
+    const pin = String(
+      body.pin || ""
+    ).trim();
+
+    // =========================
+    // 基本资料检查
+    // =========================
 
     if (
       role !== "student" &&
@@ -138,10 +139,37 @@ module.exports = async function handler(req, res) {
       });
     }
 
+    if (!name) {
+      return json(res, 400, {
+        ok: false,
+        message: "请输入真实姓名"
+      });
+    }
+
     if (!externalId) {
       return json(res, 400, {
         ok: false,
         message: "请输入学号／编号"
+      });
+    }
+
+    if (
+      role === "student" &&
+      !className
+    ) {
+      return json(res, 400, {
+        ok: false,
+        message: "请输入班级"
+      });
+    }
+
+    if (
+      role === "staff" &&
+      !department
+    ) {
+      return json(res, 400, {
+        ok: false,
+        message: "请输入部门／职务"
       });
     }
 
@@ -152,80 +180,200 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    // ------------------------------------------------
-    // 查找玩家
-    // ------------------------------------------------
+    // =========================
+    // 查找现有玩家
+    // =========================
 
-    const players =
-      await supabaseRequest(
-        "players" +
+    const rows = await supabaseRequest(
+      "players" +
         "?role=eq." +
         encodeURIComponent(role) +
         "&external_id=eq." +
         encodeURIComponent(externalId) +
         "&select=id,role,name,external_id,class_name,department,avatar,pin_hash" +
         "&limit=1",
-        {
-          method: "GET"
-        }
-      );
+      {
+        method: "GET"
+      }
+    );
 
-    if (!players || !players.length) {
-      return json(res, 401, {
-        ok: false,
-        message: "学号／编号或 PIN 不正确"
-      });
+    const pinHash = hashPin(pin);
+
+    let player;
+    let created = false;
+
+    // =========================
+    // 已有账号：验证 PIN
+    // =========================
+
+    if (rows && rows.length) {
+      const existing = rows[0];
+
+      if (
+        !safeEqual(
+          existing.pin_hash,
+          pinHash
+        )
+      ) {
+        return json(res, 401, {
+          ok: false,
+          code: "PIN_INCORRECT",
+          message:
+            "这个编号已经登记，但 PIN 不正确"
+        });
+      }
+
+      // PIN 正确后更新玩家基本资料
+      const patch = {
+        name: name,
+
+        class_name:
+          role === "student"
+            ? className
+            : null,
+
+        department:
+          role === "staff"
+            ? department
+            : null,
+
+        avatar: avatar,
+
+        updated_at:
+          new Date().toISOString()
+      };
+
+      const updated =
+        await supabaseRequest(
+          `players?id=eq.${Number(
+            existing.id
+          )}`,
+          {
+            method: "PATCH",
+            body:
+              JSON.stringify(patch),
+            prefer:
+              "return=representation"
+          }
+        );
+
+      player =
+        updated &&
+        updated.length
+          ? updated[0]
+          : {
+              ...existing,
+              ...patch
+            };
     }
 
-    const player = players[0];
+    // =========================
+    // 新玩家：建立账号
+    // =========================
 
-    // ------------------------------------------------
-    // 验证 PIN
-    // ------------------------------------------------
+    else {
+      const payload = {
+        role: role,
+        name: name,
 
-    const incomingHash = hashPin(pin);
+        external_id:
+          externalId,
 
-    const savedHash =
-      String(player.pin_hash || "");
+        class_name:
+          role === "student"
+            ? className
+            : null,
 
-    const a = Buffer.from(incomingHash);
-    const b = Buffer.from(savedHash);
+        department:
+          role === "staff"
+            ? department
+            : null,
 
-    const pinCorrect =
-      a.length === b.length &&
-      crypto.timingSafeEqual(a, b);
+        avatar: avatar,
 
-    if (!pinCorrect) {
-      return json(res, 401, {
-        ok: false,
-        message: "学号／编号或 PIN 不正确"
-      });
+        pin_hash:
+          pinHash,
+
+        updated_at:
+          new Date().toISOString()
+      };
+
+      const made =
+        await supabaseRequest(
+          "players",
+          {
+            method: "POST",
+            body:
+              JSON.stringify(
+                payload
+              ),
+            prefer:
+              "return=representation"
+          }
+        );
+
+      if (
+        !made ||
+        !made.length
+      ) {
+        throw new Error(
+          "建立玩家资料失败"
+        );
+      }
+
+      player = made[0];
+      created = true;
     }
 
-    // ------------------------------------------------
-    // PIN 正确 → 发出玩家 token
-    // ------------------------------------------------
+    // =========================
+    // 签发安全玩家 Token
+    // =========================
 
     const token =
-      createPlayerToken(player);
+      createPlayerToken(
+        player
+      );
+
+    // =========================
+    // 返回前端
+    // PIN / pin_hash 不返回
+    // =========================
 
     return json(res, 200, {
       ok: true,
-      token,
+
+      created:
+        created,
+
+      token:
+        token,
 
       player: {
-        id: Number(player.id),
-        role: player.role || "",
-        name: player.name || "",
-        external_id: player.external_id || "",
-        class_name: player.class_name || "",
-        department: player.department || "",
-        avatar: player.avatar || ""
+        id:
+          Number(player.id),
+
+        role:
+          player.role || "",
+
+        name:
+          player.name || "",
+
+        external_id:
+          player.external_id || "",
+
+        class_name:
+          player.class_name || "",
+
+        department:
+          player.department || "",
+
+        avatar:
+          player.avatar || ""
       }
     });
+  }
 
-  } catch (error) {
-
+  catch (error) {
     console.error(
       "player-login error:",
       error
@@ -233,6 +381,7 @@ module.exports = async function handler(req, res) {
 
     return json(res, 500, {
       ok: false,
+
       message:
         error.message ||
         "玩家登录发生错误"
