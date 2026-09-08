@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>玩家登录 API 测试</title>
+  <title>玩家安全登录与云端读取测试</title>
 
   <style>
     body {
@@ -16,7 +16,7 @@
     }
 
     .box {
-      max-width: 520px;
+      max-width: 560px;
       margin: auto;
       background: #fffaf2;
       border: 1px solid #e6cfaa;
@@ -29,6 +29,12 @@
       margin-top: 0;
       color: #8e3840;
       font-size: 26px;
+    }
+
+    h2 {
+      margin-top: 24px;
+      font-size: 20px;
+      color: #6e4b3c;
     }
 
     label {
@@ -66,12 +72,12 @@
       cursor: not-allowed;
     }
 
-    #result {
+    .result {
       margin-top: 20px;
       padding: 14px;
       border-radius: 10px;
       display: none;
-      line-height: 1.7;
+      line-height: 1.8;
     }
 
     .success {
@@ -88,8 +94,29 @@
       border: 1px solid #e3aaaa;
     }
 
+    .info {
+      display: block !important;
+      background: #eef4fb;
+      color: #304d6b;
+      border: 1px solid #b7cae0;
+    }
+
+    .progress-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .progress-item {
+      background: rgba(255,255,255,.7);
+      border: 1px solid #cfd8c9;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
     .note {
-      margin-top: 16px;
+      margin-top: 18px;
       font-size: 13px;
       color: #77685a;
       line-height: 1.6;
@@ -101,11 +128,11 @@
 
   <div class="box">
 
-    <h1>玩家登录 API 测试</h1>
+    <h1>玩家安全登录与云端读取测试</h1>
 
     <p>
-      此页面只用于测试服务器端玩家身份验证。
-      PIN 不会显示在测试结果中。
+      此页面用于测试：
+      <strong>服务器验证 PIN → 签发 token → 使用 token 安全读取玩家自己的云端进度</strong>。
     </p>
 
     <label for="role">身份</label>
@@ -136,169 +163,399 @@
     >
 
     <button id="testBtn">
-      测试登录
+      登录并读取云端进度
     </button>
 
-    <div id="result"></div>
+    <div id="loginResult" class="result"></div>
+
+    <div id="progressResult" class="result"></div>
 
     <div class="note">
-      测试完成后，这个临时页面可以删除。
-      请不要把测试页面网址公开给学生。
+      本测试页只读取资料，不会修改分数、金币或答题进度。
+      测试完成后可删除。
     </div>
 
   </div>
 
-  <script>
-    const roleEl =
-      document.getElementById("role");
 
-    const externalIdEl =
-      document.getElementById("externalId");
+<script>
 
-    const pinEl =
-      document.getElementById("pin");
+const roleEl =
+  document.getElementById("role");
 
-    const btn =
-      document.getElementById("testBtn");
+const externalIdEl =
+  document.getElementById("externalId");
 
-    const result =
-      document.getElementById("result");
+const pinEl =
+  document.getElementById("pin");
 
+const btn =
+  document.getElementById("testBtn");
 
-    btn.addEventListener("click", async () => {
+const loginResult =
+  document.getElementById("loginResult");
 
-      const role =
-        roleEl.value;
-
-      const external_id =
-        externalIdEl.value.trim();
-
-      const pin =
-        pinEl.value.trim();
+const progressResult =
+  document.getElementById("progressResult");
 
 
-      result.className = "";
-      result.style.display = "none";
-      result.textContent = "";
+btn.addEventListener("click", async () => {
+
+  const role =
+    roleEl.value;
+
+  const external_id =
+    externalIdEl.value.trim();
+
+  const pin =
+    pinEl.value.trim();
 
 
-      if (!external_id) {
+  resetResult(
+    loginResult
+  );
 
-        result.className = "error";
-
-        result.textContent =
-          "❌ 请输入学号／编号。";
-
-        return;
-      }
+  resetResult(
+    progressResult
+  );
 
 
-      if (!/^\d{4}$/.test(pin)) {
+  if (!external_id) {
 
-        result.className = "error";
+    showError(
+      loginResult,
+      "❌ 请输入学号／编号。"
+    );
 
-        result.textContent =
-          "❌ PIN 必须是 4 位数字。";
-
-        return;
-      }
-
-
-      btn.disabled = true;
-      btn.textContent = "验证中……";
+    return;
+  }
 
 
-      try {
+  if (!/^\d{4}$/.test(pin)) {
 
-        const response =
-          await fetch(
-            "/api/player-login",
-            {
-              method: "POST",
+    showError(
+      loginResult,
+      "❌ PIN 必须是 4 位数字。"
+    );
 
-              headers: {
-                "Content-Type": "application/json"
-              },
-
-              body: JSON.stringify({
-                role,
-                external_id,
-                pin
-              })
-            }
-          );
+    return;
+  }
 
 
-        const data =
-          await response.json();
+  btn.disabled = true;
+
+  btn.textContent =
+    "正在验证并读取……";
 
 
-        if (!response.ok || !data.ok) {
+  try {
 
-          throw new Error(
-            data.message ||
-            "登录验证失败"
-          );
+    // ==================================================
+    // STEP 1：安全登录
+    // ==================================================
+
+    const loginResponse =
+      await fetch(
+        "/api/player-login",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            role,
+            external_id,
+            pin
+          })
         }
+      );
 
 
-        const player =
-          data.player || {};
+    const loginData =
+      await loginResponse.json();
 
 
-        result.className = "success";
+    if (
+      !loginResponse.ok ||
+      !loginData.ok
+    ) {
 
-        result.innerHTML =
-          "✅ 登录验证成功！" +
-          "<br><br>" +
-          "姓名：" +
-          escapeHtml(player.name || "") +
-          "<br>" +
-          "身份：" +
-          escapeHtml(player.role || "") +
-          "<br>" +
-          "学号／编号：" +
-          escapeHtml(player.external_id || "") +
-          "<br><br>" +
-          "服务器已经成功验证 PIN，并签发玩家登录 token。";
-
-
-      } catch (error) {
-
-        result.className = "error";
-
-        result.textContent =
-          "❌ " +
-          (
-            error.message ||
-            "登录测试失败"
-          );
-
-      } finally {
-
-        btn.disabled = false;
-
-        btn.textContent =
-          "测试登录";
-
-        pinEl.value = "";
-      }
-
-    });
-
-
-    function escapeHtml(value) {
-
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+      throw new Error(
+        loginData.message ||
+        "登录验证失败"
+      );
     }
-  </script>
 
-  <!-- trigger vercel deploy -->
+
+    const token =
+      loginData.token;
+
+
+    if (!token) {
+
+      throw new Error(
+        "服务器没有返回玩家 token"
+      );
+    }
+
+
+    const player =
+      loginData.player || {};
+
+
+    loginResult.className =
+      "result success";
+
+    loginResult.innerHTML =
+      "✅ 玩家身份验证成功！" +
+      "<br>" +
+      "姓名：" +
+      escapeHtml(
+        player.name || ""
+      ) +
+      "<br>" +
+      "身份：" +
+      escapeHtml(
+        player.role || ""
+      ) +
+      "<br>" +
+      "学号／编号：" +
+      escapeHtml(
+        player.external_id || ""
+      );
+
+
+    // ==================================================
+    // STEP 2：使用 token 安全读取云端进度
+    // ==================================================
+
+    const progressResponse =
+      await fetch(
+        "/api/load-progress",
+        {
+          method: "GET",
+
+          headers: {
+            "Authorization":
+              "Bearer " + token
+          }
+        }
+      );
+
+
+    const progressData =
+      await progressResponse.json();
+
+
+    if (
+      !progressResponse.ok ||
+      !progressData.ok
+    ) {
+
+      throw new Error(
+        progressData.message ||
+        "读取云端进度失败"
+      );
+    }
+
+
+    const p =
+      progressData.progress || {};
+
+
+    const completedCount =
+      countCompleted(
+        p.completed
+      );
+
+
+    progressResult.className =
+      "result info";
+
+
+    progressResult.innerHTML =
+      "<h2>✅ 云端进度读取成功</h2>" +
+
+      "<div class='progress-grid'>" +
+
+        progressBox(
+          "分数",
+          numberValue(p.score)
+        ) +
+
+        progressBox(
+          "金币",
+          numberValue(p.coins)
+        ) +
+
+        progressBox(
+          "答对",
+          numberValue(p.correct)
+        ) +
+
+        progressBox(
+          "答错",
+          numberValue(p.wrong)
+        ) +
+
+        progressBox(
+          "已作答",
+          numberValue(p.answered)
+        ) +
+
+        progressBox(
+          "当前连击",
+          numberValue(p.combo)
+        ) +
+
+        progressBox(
+          "最高连击",
+          numberValue(p.best_combo)
+        ) +
+
+        progressBox(
+          "已完成景点",
+          completedCount + " / 15"
+        ) +
+
+      "</div>" +
+
+      (
+        p.updated_at
+          ? "<br>云端最后更新时间：" +
+            escapeHtml(
+              formatTime(
+                p.updated_at
+              )
+            )
+          : ""
+      ) +
+
+      "<br><br>" +
+
+      "服务器已根据登录 token 自动确认玩家身份，" +
+      "没有使用浏览器提供的 player_id。";
+
+
+  } catch (error) {
+
+    showError(
+      progressResult,
+      "❌ " +
+      (
+        error.message ||
+        "测试失败"
+      )
+    );
+
+  } finally {
+
+    btn.disabled = false;
+
+    btn.textContent =
+      "登录并读取云端进度";
+
+    // 测试结束后立即清空 PIN
+    pinEl.value = "";
+  }
+
+});
+
+
+// ==================================================
+// Helper functions
+// ==================================================
+
+function resetResult(el) {
+  el.className = "result";
+  el.style.display = "none";
+  el.innerHTML = "";
+}
+
+
+function showError(el, text) {
+  el.className =
+    "result error";
+
+  el.textContent = text;
+}
+
+
+function numberValue(value) {
+  const n = Number(value);
+
+  return Number.isFinite(n)
+    ? n
+    : 0;
+}
+
+
+function progressBox(label, value) {
+
+  return (
+    "<div class='progress-item'>" +
+      "<strong>" +
+        escapeHtml(label) +
+      "</strong>" +
+      "<br>" +
+      escapeHtml(value) +
+    "</div>"
+  );
+}
+
+
+function countCompleted(completed) {
+
+  if (
+    !completed ||
+    typeof completed !== "object"
+  ) {
+    return 0;
+  }
+
+  return Object
+    .values(completed)
+    .filter(Boolean)
+    .length;
+}
+
+
+function formatTime(value) {
+
+  try {
+
+    return new Date(value)
+      .toLocaleString(
+        "zh-MY",
+        {
+          timeZone:
+            "Asia/Kuala_Lumpur"
+        }
+      );
+
+  } catch {
+
+    return String(value || "");
+  }
+}
+
+
+function escapeHtml(value) {
+
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+</script>
+
+<!-- trigger secure load test -->
 
 </body>
 </html>
