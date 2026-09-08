@@ -1,5 +1,3 @@
-const crypto = require("crypto");
-
 function json(res, status, data) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -7,7 +5,7 @@ function json(res, status, data) {
 }
 
 async function supabaseRequest(path, options = {}) {
-  const base = (process.env.SUPABASE_URL || "").replace(/\/+$/, "");
+  const base = String(process.env.SUPABASE_URL || "").replace(/\/+$/, "");
   const key = process.env.SUPABASE_SECRET_KEY;
 
   if (!base || !key) {
@@ -36,44 +34,51 @@ async function supabaseRequest(path, options = {}) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
-    return json(res, 405, { ok: false, error: "Method not allowed" });
+    return json(res, 405, {
+      ok: false,
+      message: "Method not allowed"
+    });
   }
 
   try {
     const body =
-      typeof req.body === "string" ? JSON.parse(req.body || "{}") : (req.body || {});
+      typeof req.body === "string"
+        ? JSON.parse(req.body || "{}")
+        : (req.body || {});
 
-    const externalId = String(
-      body.external_id || body.externalId || body.studentId || body.staffId || ""
-    ).trim();
+    let playerId = Number(body.player_id || body.playerId || 0);
 
-    if (!externalId) {
-      return json(res, 400, {
-        ok: false,
-        error: "缺少学号／教职员编号"
-      });
+    // 如果前端没有传 player_id，再用学号／编号查找
+    if (!playerId) {
+      const externalId = String(
+        body.external_id ||
+        body.externalId ||
+        body.studentId ||
+        body.staffId ||
+        ""
+      ).trim();
+
+      if (!externalId) {
+        return json(res, 400, {
+          ok: false,
+          message: "缺少玩家编号"
+        });
+      }
+
+      const players = await supabaseRequest(
+        `players?external_id=eq.${encodeURIComponent(externalId)}&select=id&limit=1`,
+        { method: "GET" }
+      );
+
+      if (!players || !players.length) {
+        return json(res, 404, {
+          ok: false,
+          message: "找不到玩家资料"
+        });
+      }
+
+      playerId = players[0].id;
     }
-
-    // 先找玩家
-    const players = await supabaseRequest(
-      `players?external_id=eq.${encodeURIComponent(externalId)}&select=id,external_id&limit=1`,
-      { method: "GET" }
-    );
-
-    if (!players || !players.length) {
-      return json(res, 404, {
-        ok: false,
-        error: "找不到玩家资料"
-      });
-    }
-
-    const playerId = players[0].id;
-
-    const completed = Array.isArray(body.completed)
-      ? body.completed
-      : Array.isArray(body.completed_stages)
-      ? body.completed_stages
-      : [];
 
     const progress = {
       player_id: playerId,
@@ -84,17 +89,27 @@ module.exports = async function handler(req, res) {
       answered: Number(body.answered || 0),
       combo: Number(body.combo || 0),
       best_combo: Number(body.best_combo || body.bestCombo || 0),
-      completed: completed,
+
+      // 保留游戏原本的对象格式
+      completed:
+        body.completed && typeof body.completed === "object"
+          ? body.completed
+          : {},
+
       stage_records:
-        body.stage_records ||
-        body.stageRecords ||
-        {},
+        body.stage_records && typeof body.stage_records === "object"
+          ? body.stage_records
+          : (
+              body.stageRecords && typeof body.stageRecords === "object"
+                ? body.stageRecords
+                : {}
+            ),
+
       updated_at: new Date().toISOString()
     };
 
-    // 查是否已有进度
     const existing = await supabaseRequest(
-      `player_progress?player_id=eq.${encodeURIComponent(playerId)}&select=player_id&limit=1`,
+      `player_progress?player_id=eq.${playerId}&select=id&limit=1`,
       { method: "GET" }
     );
 
@@ -102,7 +117,7 @@ module.exports = async function handler(req, res) {
 
     if (existing && existing.length) {
       result = await supabaseRequest(
-        `player_progress?player_id=eq.${encodeURIComponent(playerId)}`,
+        `player_progress?player_id=eq.${playerId}`,
         {
           method: "PATCH",
           body: JSON.stringify(progress),
@@ -110,11 +125,14 @@ module.exports = async function handler(req, res) {
         }
       );
     } else {
-      result = await supabaseRequest("player_progress", {
-        method: "POST",
-        body: JSON.stringify(progress),
-        prefer: "return=representation"
-      });
+      result = await supabaseRequest(
+        "player_progress",
+        {
+          method: "POST",
+          body: JSON.stringify(progress),
+          prefer: "return=representation"
+        }
+      );
     }
 
     return json(res, 200, {
@@ -123,12 +141,13 @@ module.exports = async function handler(req, res) {
       player_id: playerId,
       progress: result
     });
+
   } catch (error) {
     console.error("save-progress error:", error);
 
     return json(res, 500, {
       ok: false,
-      error: error.message || "保存失败"
+      message: error.message || "保存游戏进度失败"
     });
   }
 };
