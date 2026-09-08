@@ -1,10 +1,27 @@
 const crypto = require("crypto");
 
 function safeEqual(a, b) {
-  const aa = Buffer.from(String(a || ""));
-  const bb = Buffer.from(String(b || ""));
-  if (aa.length !== bb.length) return false;
-  return crypto.timingSafeEqual(aa, bb);
+  const x = Buffer.from(String(a || ""));
+  const y = Buffer.from(String(b || ""));
+  if (x.length !== y.length) return false;
+  return crypto.timingSafeEqual(x, y);
+}
+
+function createToken(secret) {
+  const payloadObject = {
+    exp: Date.now() + 8 * 60 * 60 * 1000
+  };
+
+  const payload = Buffer
+    .from(JSON.stringify(payloadObject))
+    .toString("base64url");
+
+  const signature = crypto
+    .createHmac("sha256", secret)
+    .update(payload)
+    .digest("base64url");
+
+  return `${payload}.${signature}`;
 }
 
 module.exports = async function handler(req, res) {
@@ -21,7 +38,7 @@ module.exports = async function handler(req, res) {
   if (!adminPassword) {
     return res.status(500).json({
       ok: false,
-      message: "教师后台密码尚未设置"
+      message: "教师管理密码尚未设置"
     });
   }
 
@@ -32,8 +49,11 @@ module.exports = async function handler(req, res) {
     });
   }
 
+  const token = createToken(adminPassword);
+
   return res.status(200).json({
     ok: true,
-    message: "验证成功"
+    token,
+    message: "登录成功"
   });
 };
