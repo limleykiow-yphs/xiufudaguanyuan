@@ -33,33 +33,9 @@ function verifyToken(token, secret) {
     );
 
     return Number(data.exp) > Date.now();
-  } catch (error) {
+  } catch (e) {
     return false;
   }
-}
-
-// Supabase GET 请求
-async function supabaseGet(baseUrl, secretKey, path) {
-  const base = String(baseUrl || "").replace(/\/+$/, "");
-
-  const response = await fetch(`${base}/rest/v1/${path}`, {
-    method: "GET",
-    headers: {
-      apikey: secretKey,
-      Authorization: `Bearer ${secretKey}`,
-      "Content-Type": "application/json"
-    }
-  });
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(
-      `Supabase ${response.status}: ${text}`
-    );
-  }
-
-  return text ? JSON.parse(text) : [];
 }
 
 module.exports = async function handler(req, res) {
@@ -71,10 +47,12 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // 教师管理中心密码
+  // --------------------------------------------------
+  // 1. 验证教师后台身份
+  // --------------------------------------------------
+
   const adminPassword = process.env.TEACHER_ADMIN_PASSWORD;
 
-  // 检查教师登录 token
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ")
     ? auth.slice(7)
@@ -87,8 +65,14 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // Supabase 环境变量
-  const supabaseUrl = process.env.SUPABASE_URL;
+  // --------------------------------------------------
+  // 2. Supabase 环境变量
+  // --------------------------------------------------
+
+  const supabaseUrl = String(
+    process.env.SUPABASE_URL || ""
+  ).replace(/\/+$/, "");
+
   const supabaseSecretKey =
     process.env.SUPABASE_SECRET_KEY;
 
@@ -100,47 +84,139 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // ① 读取所有玩家基本资料
-    const players = await supabaseGet(
-      supabaseUrl,
-      supabaseSecretKey,
-      "players?select=id,created_at,role,name,external_id,class_name,department,avatar,updated_at&order=created_at.desc"
-    );
+    // ------------------------------------------------
+    // 3. 分开读取 players
+    // ------------------------------------------------
 
-    // ② 独立读取所有玩家游戏进度
-    const progresses = await supabaseGet(
-      supabaseUrl,
-      supabaseSecretKey,
-      "player_progress?select=*"
-    );
+    const playersUrl =
+      `${supabaseUrl}/rest/v1/players` +
+      `?select=id,created_at,role,name,external_id,class_name,department,avatar,updated_at` +
+      `&order=created_at.desc`;
 
-    // ③ 按 player_id 建立进度索引
-    const progressMap = new Map();
+    const playersResponse = await fetch(playersUrl, {
+      headers: {
+        apikey: supabaseSecretKey,
+        Authorization: `Bearer ${supabaseSecretKey}`,
+        Accept: "application/json"
+      }
+    });
 
-    for (const progress of progresses) {
-      progressMap.set(
-        String(progress.player_id),
-        progress
+    const playersText = await playersResponse.text();
+
+    if (!playersResponse.ok) {
+      console.error(
+        "Supabase players error:",
+        playersText
       );
+
+      return res.status(500).json({
+        ok: false,
+        message: "读取玩家资料失败"
+      });
     }
 
-    // ④ 把 players 与 player_progress 合并
+    const players = playersText
+      ? JSON.parse(playersText)
+      : [];
+
+    // ------------------------------------------------
+    // 4. 分开读取 player_progress
+    //    不再依赖 Supabase 嵌套关系查询
+    // ------------------------------------------------
+
+    const progressUrl =
+      `${supabaseUrl}/rest/v1/player_progress` +
+      `?select=*`;
+
+    const progressResponse = await fetch(
+      progressUrl,
+      {
+        headers: {
+          apikey: supabaseSecretKey,
+          Authorization:
+            `Bearer ${supabaseSecretKey}`,
+          Accept: "application/json"
+        }
+      }
+    );
+
+    const progressText =
+      await progressResponse.text();
+
+    if (!progressResponse.ok) {
+      console.error(
+        "Supabase player_progress error:",
+        progressText
+      );
+
+      return res.status(500).json({
+        ok: false,
+        message: "读取玩家进度失败"
+      });
+    }
+
+    const progressRows = progressText
+      ? JSON.parse(progressText)
+      : [];
+
+    // ------------------------------------------------
+    // 5. 按 player_id 建立进度索引
+    // ------------------------------------------------
+
+    const progressMap = new Map();
+
+    for (const row of progressRows) {
+      const key = String(row.player_id);
+
+      // 如果同一个玩家以后出现多笔记录，
+      // 优先保留更新时间较新的记录
+      const old = progressMap.get(key);
+
+      if (!old) {
+        progressMap.set(key, row);
+        continue;
+      }
+
+      const oldTime = new Date(
+        old.updated_at ||
+        old.created_at ||
+        0
+      ).getTime();
+
+      const newTime = new Date(
+        row.updated_at ||
+        row.created_at ||
+        0
+      ).getTime();
+
+      if (newTime >= oldTime) {
+        progressMap.set(key, row);
+      }
+    }
+
+    // ------------------------------------------------
+    // 6. 合并玩家资料 + 云端游戏进度
+    // ------------------------------------------------
+
     const mergedPlayers = players.map(player => {
       const progress =
         progressMap.get(String(player.id)) || null;
 
       return {
-        ...player,
+        id: player.id,
+        created_at: player.created_at,
+        updated_at:
+          progress?.updated_at ||
+          player.updated_at ||
+          player.created_at,
 
-        // 保留教师后台原来可能使用的格式
-        player_progress: progress
-          ? [progress]
-          : [],
+        role: player.role || "",
+        name: player.name || "",
+        external_id: player.external_id || "",
+        class_name: player.class_name || "",
+        department: player.department || "",
+        avatar: player.avatar || "",
 
-        // 另外提供一个直接 progress 对象
-        progress: progress,
-
-        // 同时把主要统计放到顶层
         score: Number(progress?.score || 0),
         coins: Number(progress?.coins || 0),
         correct: Number(progress?.correct || 0),
@@ -152,28 +228,23 @@ module.exports = async function handler(req, res) {
         ),
 
         completed:
-          progress?.completed &&
-          typeof progress.completed === "object"
-            ? progress.completed
-            : {},
+          progress?.completed ?? [],
 
         stage_records:
-          progress?.stage_records &&
-          typeof progress.stage_records === "object"
-            ? progress.stage_records
-            : {},
+          progress?.stage_records ?? {},
 
-        progress_updated_at:
-          progress?.updated_at || null
+        has_cloud_progress: !!progress
       };
     });
 
-    // ⑤ 返回教师后台
+    // ------------------------------------------------
+    // 7. 返回教师后台
+    // ------------------------------------------------
+
     return res.status(200).json({
       ok: true,
       players: mergedPlayers,
-      playerCount: mergedPlayers.length,
-      progressCount: progresses.length
+      progress_count: progressRows.length
     });
 
   } catch (error) {
@@ -185,8 +256,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({
       ok: false,
       message:
-        error.message ||
-        "读取云端玩家资料时发生错误"
+        "服务器读取玩家资料时发生错误"
     });
   }
 };
