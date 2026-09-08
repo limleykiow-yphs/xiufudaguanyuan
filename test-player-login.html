@@ -3,95 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>玩家登录 API 测试</title>
 
   <style>
-    body{
-      font-family:"Microsoft YaHei",Arial,sans-serif;
-      background:#f6efe3;
-      margin:0;
-      padding:40px 16px;
-      color:#4b342b;
+    body {
+      font-family: "Microsoft YaHei", Arial, sans-serif;
+      background: #f6efe3;
+      margin: 0;
+      padding: 40px 16px;
+      color: #4b342b;
     }
 
-    .box{
-      max-width:520px;
-      margin:auto;
-      background:#fffaf2;
-      border:1px solid #e6cfaa;
-      border-radius:18px;
-      padding:26px;
-      box-shadow:0 10px 30px rgba(80,50,30,.12);
+    .box {
+      max-width: 520px;
+      margin: auto;
+      background: #fffaf2;
+      border: 1px solid #e6cfaa;
+      border-radius: 18px;
+      padding: 26px;
+      box-shadow: 0 10px 30px rgba(80, 50, 30, .12);
     }
 
-    h1{
-      margin-top:0;
-      color:#8e3840;
-      font-size:26px;
+    h1 {
+      margin-top: 0;
+      color: #8e3840;
+      font-size: 26px;
     }
 
-    label{
-      display:block;
-      margin-top:16px;
-      margin-bottom:6px;
-      font-weight:700;
+    label {
+      display: block;
+      margin-top: 16px;
+      margin-bottom: 6px;
+      font-weight: 700;
     }
 
     select,
-    input{
-      width:100%;
-      box-sizing:border-box;
-      padding:12px;
-      border:1px solid #cdbb9d;
-      border-radius:10px;
-      font-size:16px;
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      border: 1px solid #cdbb9d;
+      border-radius: 10px;
+      font-size: 16px;
     }
 
-    button{
-      width:100%;
-      margin-top:22px;
-      padding:13px;
-      border:0;
-      border-radius:10px;
-      background:#8e3840;
-      color:white;
-      font-size:17px;
-      font-weight:700;
-      cursor:pointer;
+    button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 13px;
+      border: 0;
+      border-radius: 10px;
+      background: #8e3840;
+      color: white;
+      font-size: 17px;
+      font-weight: 700;
+      cursor: pointer;
     }
 
-    button:disabled{
-      opacity:.55;
-      cursor:not-allowed;
+    button:disabled {
+      opacity: .55;
+      cursor: not-allowed;
     }
 
-    #result{
-      margin-top:20px;
-      padding:14px;
-      border-radius:10px;
-      display:none;
-      line-height:1.7;
+    #result {
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+      display: none;
+      line-height: 1.7;
     }
 
-    .success{
-      display:block !important;
-      background:#e6f5e2;
-      color:#315b31;
-      border:1px solid #9ac794;
+    .success {
+      display: block !important;
+      background: #e6f5e2;
+      color: #315b31;
+      border: 1px solid #9ac794;
     }
 
-    .error{
-      display:block !important;
-      background:#fde7e7;
-      color:#8b2f2f;
-      border:1px solid #e3aaaa;
+    .error {
+      display: block !important;
+      background: #fde7e7;
+      color: #8b2f2f;
+      border: 1px solid #e3aaaa;
     }
 
-    .note{
-      margin-top:16px;
-      font-size:13px;
-      color:#77685a;
-      line-height:1.6;
+    .note {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #77685a;
+      line-height: 1.6;
     }
   </style>
 </head>
@@ -104,16 +105,18 @@
 
     <p>
       此页面只用于测试服务器端玩家身份验证。
-      PIN 不会显示在结果中。
+      PIN 不会显示在测试结果中。
     </p>
 
     <label for="role">身份</label>
+
     <select id="role">
       <option value="student">学生</option>
       <option value="staff">教职员</option>
     </select>
 
     <label for="externalId">学号／编号</label>
+
     <input
       id="externalId"
       type="text"
@@ -122,6 +125,7 @@
     >
 
     <label for="pin">4 位 PIN</label>
+
     <input
       id="pin"
       type="password"
@@ -144,168 +148,157 @@
 
   </div>
 
-<script>
+  <script>
+    const roleEl =
+      document.getElementById("role");
 
-const roleEl =
-  document.getElementById("role");
+    const externalIdEl =
+      document.getElementById("externalId");
 
-const externalIdEl =
-  document.getElementById("externalId");
+    const pinEl =
+      document.getElementById("pin");
 
-const pinEl =
-  document.getElementById("pin");
+    const btn =
+      document.getElementById("testBtn");
 
-const btn =
-  document.getElementById("testBtn");
-
-const result =
-  document.getElementById("result");
-
-
-btn.addEventListener("click", async () => {
-
-  const role =
-    roleEl.value;
-
-  const external_id =
-    externalIdEl.value.trim();
-
-  const pin =
-    pinEl.value.trim();
+    const result =
+      document.getElementById("result");
 
 
-  result.className = "";
-  result.style.display = "none";
-  result.textContent = "";
+    btn.addEventListener("click", async () => {
+
+      const role =
+        roleEl.value;
+
+      const external_id =
+        externalIdEl.value.trim();
+
+      const pin =
+        pinEl.value.trim();
 
 
-  if (!external_id) {
-
-    result.className = "error";
-
-    result.textContent =
-      "❌ 请输入学号／编号。";
-
-    return;
-  }
+      result.className = "";
+      result.style.display = "none";
+      result.textContent = "";
 
 
-  if (!/^\d{4}$/.test(pin)) {
+      if (!external_id) {
 
-    result.className = "error";
+        result.className = "error";
 
-    result.textContent =
-      "❌ PIN 必须是 4 位数字。";
+        result.textContent =
+          "❌ 请输入学号／编号。";
 
-    return;
-  }
-
-
-  btn.disabled = true;
-  btn.textContent = "验证中……";
+        return;
+      }
 
 
-  try {
+      if (!/^\d{4}$/.test(pin)) {
 
-    const response =
-      await fetch(
-        "/api/player-login",
-        {
-          method: "POST",
+        result.className = "error";
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+        result.textContent =
+          "❌ PIN 必须是 4 位数字。";
 
-          body: JSON.stringify({
-            role,
-            external_id,
-            pin
-          })
+        return;
+      }
+
+
+      btn.disabled = true;
+      btn.textContent = "验证中……";
+
+
+      try {
+
+        const response =
+          await fetch(
+            "/api/player-login",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type": "application/json"
+              },
+
+              body: JSON.stringify({
+                role,
+                external_id,
+                pin
+              })
+            }
+          );
+
+
+        const data =
+          await response.json();
+
+
+        if (!response.ok || !data.ok) {
+
+          throw new Error(
+            data.message ||
+            "登录验证失败"
+          );
         }
-      );
 
 
-    const data =
-      await response.json();
+        const player =
+          data.player || {};
 
 
-    if (!response.ok || !data.ok) {
+        result.className = "success";
 
-      throw new Error(
-        data.message ||
-        "登录验证失败"
-      );
+        result.innerHTML =
+          "✅ 登录验证成功！" +
+          "<br><br>" +
+          "姓名：" +
+          escapeHtml(player.name || "") +
+          "<br>" +
+          "身份：" +
+          escapeHtml(player.role || "") +
+          "<br>" +
+          "学号／编号：" +
+          escapeHtml(player.external_id || "") +
+          "<br><br>" +
+          "服务器已经成功验证 PIN，并签发玩家登录 token。";
+
+
+      } catch (error) {
+
+        result.className = "error";
+
+        result.textContent =
+          "❌ " +
+          (
+            error.message ||
+            "登录测试失败"
+          );
+
+      } finally {
+
+        btn.disabled = false;
+
+        btn.textContent =
+          "测试登录";
+
+        pinEl.value = "";
+      }
+
+    });
+
+
+    function escapeHtml(value) {
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
+  </script>
 
-
-    const player =
-      data.player || {};
-
-
-    result.className =
-      "success";
-
-    result.innerHTML =
-      "✅ 登录验证成功！" +
-      "<br><br>" +
-      "姓名：" +
-      escapeHtml(
-        player.name || ""
-      ) +
-      "<br>" +
-      "身份：" +
-      escapeHtml(
-        player.role || ""
-      ) +
-      "<br>" +
-      "学号／编号：" +
-      escapeHtml(
-        player.external_id || ""
-      ) +
-      "<br><br>" +
-      "服务器已经成功验证 PIN，并签发玩家登录 token。";
-
-
-  } catch (error) {
-
-    result.className =
-      "error";
-
-    result.textContent =
-      "❌ " +
-      (
-        error.message ||
-        "登录测试失败"
-      );
-
-  } finally {
-
-    btn.disabled = false;
-
-    btn.textContent =
-      "测试登录";
-
-    // 测试后立即清空 PIN
-    pinEl.value = "";
-
-  }
-
-});
-
-
-function escapeHtml(value) {
-
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-</script>
+  <!-- trigger vercel deploy -->
 
 </body>
 </html>
