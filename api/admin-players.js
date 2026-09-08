@@ -7,28 +7,52 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(x, y);
 }
 
+function verifyToken(token, secret) {
+  try {
+    if (!token || !secret) return false;
+
+    const parts = token.split(".");
+    if (parts.length !== 2) return false;
+
+    const payload = parts[0];
+    const signature = parts[1];
+
+    const expected = crypto
+      .createHmac("sha256", secret)
+      .update(payload)
+      .digest("base64url");
+
+    if (!safeEqual(signature, expected)) return false;
+
+    const data = JSON.parse(
+      Buffer.from(payload, "base64url").toString("utf8")
+    );
+
+    return Number(data.exp) > Date.now();
+  } catch (e) {
+    return false;
+  }
+}
+
 module.exports = async function handler(req, res) {
-  if (req.method !== "POST") {
+  if (req.method !== "GET") {
     return res.status(405).json({
       ok: false,
       message: "Method not allowed"
     });
   }
 
-  const password = req.body?.password || "";
   const adminPassword = process.env.TEACHER_ADMIN_PASSWORD;
 
-  if (!adminPassword) {
-    return res.status(500).json({
-      ok: false,
-      message: "教师管理密码尚未设置"
-    });
-  }
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ")
+    ? auth.slice(7)
+    : "";
 
-  if (!safeEqual(password, adminPassword)) {
+  if (!verifyToken(token, adminPassword)) {
     return res.status(401).json({
       ok: false,
-      message: "教师管理密码错误"
+      message: "教师登录已失效，请重新登录"
     });
   }
 
