@@ -675,7 +675,7 @@ async function checkDesktopService(){
     }
   }catch{}
   desktopServiceAvailable=false;
-  updateDirectSaveStatus("目前以普通浏览器模式打开。可选择 config.js，或改用“启动教师后台.bat”。","disconnected");
+  updateDirectSaveStatus("当前为线上教师管理中心。修改题库或游戏设置后，请导出 config.js 并上传至 GitHub，Vercel 将自动部署更新。","disconnected");
   return false;
 }
 
