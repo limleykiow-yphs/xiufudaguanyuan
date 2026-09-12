@@ -932,7 +932,15 @@ function completedCount(v){
  if(typeof v==='number')return v;
  return 0;
 }
-function formatCloudTime(v){if(!v)return '—';try{return new Date(v).toLocaleString('zh-CN',{hour12:false})}catch(e){return String(v)}}
+function formatCloudTime(v){
+ if(!v)return '—';
+ try{
+  const d=new Date(v);
+  if(Number.isNaN(d.getTime()))return String(v);
+  const pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+ }catch(e){return String(v)}
+}
 function normalizeCloudPlayer(p){
  const nested=Array.isArray(p?.player_progress)?(p.player_progress[0]||{}):(p?.progress||p?._progress||{});
  const g={
