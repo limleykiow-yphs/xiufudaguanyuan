@@ -25,7 +25,7 @@ border-radius:999px;padding:10px 18px;pointer-events:none;animation:rewardUp 1.2
 20%{opacity:1}100%{opacity:0;transform:translate(-50%,-70px) scale(1.08)}}
 .settlement-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}
 .settle-box{background:#fff;border:1px solid #d8bd94;border-radius:12px;padding:12px}
-.stars{font-size:34px;letter-spacing:4px}
+.stars{font-size:34px;letter-spacing:4px;color:#e0a21a;text-shadow:0 1px 0 #8b5b16}
 @media(max-width:520px){.settlement-grid{grid-template-columns:1fr}}
 
 .collection-wrap{margin-top:14px}
@@ -209,7 +209,8 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">✅ 正确 <span id="correctCount">0</span></span>
       <span class="pill">❌ 错误 <span id="wrongCount">0</span></span>
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
-      <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
+      <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
+      <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
       <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
@@ -680,6 +681,25 @@ function showNextStageHint(stage){
 
 function save(){ localStorage.setItem(stateStorageKey(), JSON.stringify(state)); cloudSaveProgressSoon(); }
 function done(){ return STAGES.filter(s=>state.completed[s.name]).length; }
+function stageStarCount(correct,answered){
+  const c=Number(correct||0),a=Number(answered||0);
+  if(a<=0)return 0;
+  if(c>=a)return 3;
+  if(c>=Math.ceil(a*.8))return 2;
+  return 1;
+}
+function stageStarsText(correct,answered){
+  const n=stageStarCount(correct,answered);
+  return "★".repeat(n)+"☆".repeat(3-n);
+}
+function totalStarCount(){
+  const records=state.stageRecords||{};
+  return STAGES.reduce((sum,s)=>{
+    if(!state.completed[s.name])return sum;
+    const r=records[s.name]||{};
+    return sum+stageStarCount(r.correct,r.answered);
+  },0);
+}
 function unlocked(){ return Math.min(done(), STAGES.length-1); }
 function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
 function shuffleQuestion(q){
@@ -1150,6 +1170,17 @@ function drawMap(){
       ctx.font="bold 12px Microsoft YaHei";
       ctx.textAlign="center";ctx.textBaseline="middle";
       ctx.fillText("✓",x+markerRadius*.62,y-markerRadius*.62);
+      const record=(state.stageRecords||{})[s.name]||{};
+      const stars=stageStarsText(record.correct,record.answered);
+      if(stars!=="☆☆☆"){
+        ctx.lineWidth=3;
+        ctx.strokeStyle="rgba(91,52,25,.85)";
+        ctx.fillStyle="#ffd34f";
+        ctx.font="bold 11px serif";
+        ctx.textAlign="center";ctx.textBaseline="top";
+        ctx.strokeText(stars,x,y+markerRadius+3);
+        ctx.fillText(stars,x,y+markerRadius+3);
+      }
     }
     if(active){
       ctx.beginPath();ctx.arc(x,y,markerRadius+5,0,Math.PI*2);
@@ -1326,6 +1357,7 @@ function renderStats(){
   wrongCount.textContent=state.wrong;
   comboCount.textContent=state.combo;
   doneCount.textContent=d;
+  starCount.textContent=totalStarCount();
   overallBar.style.width=(d/STAGES.length*100)+"%";
   drawMap();
   renderCollection();
@@ -1459,8 +1491,7 @@ function finishCurrentStage(){
       stageCoinsResult.textContent="不奖励";
       stageCorrectResult.textContent=stageCorrect+" / "+pool.length;
       stageComboResult.textContent=stageBestCombo;
-      const ratio=stageCorrect/pool.length;
-      settlementStars.textContent=ratio===1?"★★★":ratio>=.6?"★★☆":"★☆☆";
+      settlementStars.textContent=stageStarsText(stageCorrect,pool.length);
       nextStageBtn.classList.add("hidden");
       continueMapBtn.textContent="返回地图";
       settlementModal.classList.add("show");
@@ -1487,6 +1518,7 @@ function finishCurrentStage(){
       lastCoins:stageCoins,
       correct:stageCorrect,
       answered:stageAnswered,
+      stars:stageStarCount(stageCorrect,stageAnswered),
       updated:new Date().toLocaleString()
     };
     save();
@@ -1503,8 +1535,7 @@ function finishCurrentStage(){
     stageCorrectResult.textContent=stageCorrect+" / "+pool.length;
     stageComboResult.textContent=stageBestCombo;
 
-    const ratio=stageCorrect/pool.length;
-    settlementStars.textContent=ratio===1?"★★★":ratio>=.6?"★★☆":"★☆☆";
+    settlementStars.textContent=stageStarsText(stageCorrect,pool.length);
     const currentIndex=STAGES.findIndex(s=>s.name===current.name);
     const hasNext=currentIndex>=0 && currentIndex<STAGES.length-1;
     nextStageBtn.classList.toggle("hidden",!hasNext || !SETTINGS.autoNextStage);
@@ -1632,7 +1663,8 @@ function learningRows(){
   state.stageRecords=state.stageRecords||{};
   return STAGES.map(s=>{
     const r=state.stageRecords[s.name]||{};
-    return {stage:s.name,completed:!!state.completed[s.name],correct:r.correct||0,answered:r.answered||0,score:r.lastScore||0,coins:r.lastCoins||0,updated:r.updated||""};
+    const completed=!!state.completed[s.name];
+    return {stage:s.name,completed,correct:r.correct||0,answered:r.answered||0,stars:completed?stageStarCount(r.correct,r.answered):0,score:r.lastScore||0,coins:r.lastCoins||0,updated:r.updated||""};
   });
 }
 function renderLearningRecord(){
@@ -1640,13 +1672,13 @@ function renderLearningRecord(){
   const accuracy=state.answered?Math.round(state.correct/state.answered*100):0;
   recordContent.innerHTML=(playerProfile?'<b>玩家：</b>'+playerProfile.name+'　<b>身份：</b>'+(playerProfile.role==='student'?'学生':'教职员')+(playerProfile.role==='student'?'　<b>班级：</b>'+playerProfile.className:'　<b>部门／职务：</b>'+playerProfile.department)+'<br>':'')+'<b>总得分：</b>'+state.score+'　<b>金币：</b>'+state.coins+
     '　<b>总正确率：</b>'+accuracy+'%<br><b>完成关卡：</b>'+doneRows.length+' / '+STAGES.length+
-    '<hr>'+rows.map((r,i)=>(i+1)+'. '+r.stage+'：'+(r.completed?'已完成，'+r.correct+'/'+r.answered+'题正确':'未完成')).join('<br>');
+    '<hr>'+rows.map((r,i)=>(i+1)+'. '+r.stage+'：'+(r.completed?'已完成，'+r.correct+'/'+r.answered+'题正确，'+stageStarsText(r.correct,r.answered):'未完成')).join('<br>');
 }
 reportBtn.addEventListener("click",()=>{renderLearningRecord();recordModal.classList.add("show")});
 closeRecord.addEventListener("click",()=>recordModal.classList.remove("show"));
 downloadRecordBtn.addEventListener("click",()=>{
-  const lines=[]; if(playerProfile){lines.push(["姓名",playerProfile.name],["身份",playerProfile.role==="student"?"学生":"教职员"],[playerProfile.role==="student"?"班级":"部门／职务",playerProfile.role==="student"?playerProfile.className:playerProfile.department],[playerProfile.role==="student"?"学号":"教职员编号",playerProfile.id],[]);} lines.push(["关卡","完成状态","正确题数","答题数","本关得分","本关金币","更新时间"]);
-  learningRows().forEach(r=>lines.push([r.stage,r.completed?"已完成":"未完成",r.correct,r.answered,r.score,r.coins,r.updated]));
+  const lines=[]; if(playerProfile){lines.push(["姓名",playerProfile.name],["身份",playerProfile.role==="student"?"学生":"教职员"],[playerProfile.role==="student"?"班级":"部门／职务",playerProfile.role==="student"?playerProfile.className:playerProfile.department],[playerProfile.role==="student"?"学号":"教职员编号",playerProfile.id],[]);} lines.push(["关卡","完成状态","星级","正确题数","答题数","本关得分","本关金币","更新时间"]);
+  learningRows().forEach(r=>lines.push([r.stage,r.completed?"已完成":"未完成",r.completed?stageStarsText(r.correct,r.answered):"",r.correct,r.answered,r.score,r.coins,r.updated]));
   lines.push([]);lines.push(["总得分",state.score]);lines.push(["总金币",state.coins]);lines.push(["总正确",state.correct]);lines.push(["总答题",state.answered]);
   const csv="\ufeff"+lines.map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\n");
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
