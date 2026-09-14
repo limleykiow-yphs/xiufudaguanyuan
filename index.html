@@ -896,6 +896,31 @@ function drawLanternGlow(){
   });
 }
 
+const STAGE_REPAIR_SCENES={
+  "大观园正门":{center:"🏮",symbols:["🏮","✨","🌸","🦋"],action:"点亮朱门灯笼，修复园门匾额"},
+  "沁芳闸":{center:"🪷",symbols:["💧","🐟","🪷","🌊"],action:"疏通清流，唤醒荷花与游鱼"},
+  "怡红院":{center:"🌺",symbols:["🏮","🌺","🐦","✨"],action:"点亮庭灯，令海棠重新盛开"},
+  "潇湘馆":{center:"🎋",symbols:["🎋","🍃","🎋","✨"],action:"扶正翠竹，让竹影随风重现"},
+  "蘅芜苑":{center:"🌿",symbols:["🌿","🦋","🌼","🌺"],action:"整理香草藤萝，恢复清雅花径"},
+  "秋爽斋":{center:"📜",symbols:["📜","🍁","📖","✨"],action:"展开书卷，重现秋爽墨香"},
+  "稻香村":{center:"🌾",symbols:["🌾","🏡","☁️","🌾"],action:"修整田畦，让金黄稻浪再现"},
+  "藕香榭":{center:"🪷",symbols:["🪷","🐝","💧","🪷"],action:"净化池水，唤醒满池荷香"},
+  "凸碧山庄":{center:"🌕",symbols:["🌙","🏮","✨","🌊"],action:"点亮山庄灯火，引来澄澈月光"},
+  "凹晶溪馆":{center:"🌙",symbols:["🌙","🌊","🏮","✨"],action:"澄清溪水，让月影映入馆前"},
+  "紫菱洲":{center:"🌿",symbols:["🪷","🌉","🌿","✨"],action:"修复洲桥，令菱叶舒展生长"},
+  "栊翠庵":{center:"🍵",symbols:["🌸","🍵","☁️","✨"],action:"清扫幽庭，让茶烟与梅香再起"},
+  "滴翠亭":{center:"🐦",symbols:["🍃","🐦","🏮","✨"],action:"擦亮翠亭，引回飞鸟与清风"},
+  "暖香坞":{center:"🖌️",symbols:["🌸","📜","🖌️","🎨"],action:"修补画卷，为暖香坞重新上色"},
+  "红香圃":{center:"🌺",symbols:["🌸","🌼","🦋","🌺"],action:"唤醒群芳，让百花齐放满园"}
+};
+function repairScene(stage){
+  return STAGE_REPAIR_SCENES[stage?.name]||{
+    center:stage?.icon||"🏯",
+    symbols:repairSymbols(stage?.repairEffect),
+    action:"花木、流水与灯火恢复"
+  };
+}
+
 function repairSymbols(effect){
   const all={
     gate:["🏮","🌸","🏮","🦋"],water:["💧","🐟","🪷","🌊"],lantern:["🏮","🌸","🐦","✨"],
@@ -911,7 +936,7 @@ function drawStageRepair(stage,x,y,strong=false){
   if(!strong)return;
 
   // 只在一次性的修复动画过程中显示短暂恢复效果。
-  const effect=stage.repairEffect||"flowers";
+  const scene=repairScene(stage);
   ctx.save();
   ctx.textAlign="center";
   ctx.textBaseline="middle";
@@ -925,24 +950,7 @@ function drawStageRepair(stage,x,y,strong=false){
   ctx.arc(x,y,88,0,Math.PI*2);
   ctx.fill();
 
-  const sets={
-    gate:["✨","🌸","✨"],
-    water:["✨","🪷","✨"],
-    lantern:["✨","🌺","✨"],
-    bamboo:["✨","🎋","✨"],
-    flowers:["✨","🌸","✨"],
-    scroll:["✨","📜","✨"],
-    field:["✨","🌾","✨"],
-    lotus:["✨","🪷","✨"],
-    moon:["✨","🌙","✨"],
-    night:["✨","⭐","✨"],
-    island:["✨","🌿","✨"],
-    tea:["✨","🌸","✨"],
-    pavilion:["✨","🏯","✨"],
-    painting:["✨","📜","✨"],
-    final:["✨","🌺","✨"]
-  };
-  const items=sets[effect]||sets.flowers;
+  const items=["✨",scene.center,"✨"];
   const positions=[[-44,10],[0,32],[44,10]];
   items.forEach((sym,i)=>{
     ctx.font=(i===1?27:22)+"px serif";
@@ -958,7 +966,8 @@ function drawMapRepairAnimation(){
   const elapsed=performance.now()-activeMapRepair.start;
   const duration=SETTINGS.repairAnimationDuration||6500;
   const progress=Math.min(1,elapsed/duration);
-  const syms=repairSymbols(stage.repairEffect);
+  const scene=repairScene(stage);
+  const syms=scene.symbols;
 
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
 
@@ -1064,7 +1073,7 @@ function drawMapRepairAnimation(){
     .replace(stage.name,"")
     .replace(/[✓✔🎉！!]/g,"")
     .trim()||"修复完成";
-  const labels=["清理破损环境","修补建筑与设施","金色修缮光芒扩散","花木、流水与灯笼恢复",finalLabel];
+  const labels=["清理破损环境","修补建筑与设施","金色修缮光芒扩散",scene.action,finalLabel];
   const li=elapsed<1300?0:elapsed<2800?1:elapsed<4200?2:elapsed<5400?3:4;
   const w=Math.min(650,canvas.width*.80),bx=(canvas.width-w)/2,by=canvas.height-88;
   ctx.fillStyle="rgba(255,249,229,.96)";ctx.strokeStyle="#c69545";ctx.lineWidth=3;
