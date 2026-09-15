@@ -114,6 +114,19 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 .card-scene-image{display:block;width:min(560px,100%);max-height:300px;object-fit:cover;margin:0 auto 14px;border-radius:16px;border:3px double #d0a34e;background:#fff}
 .repair-scene-image{display:block;width:min(520px,100%);max-height:230px;object-fit:cover;margin:8px auto 10px;border-radius:14px;border:2px solid #d8bd94;background:#fff}
 
+/* ===== 成就徽章系统 ===== */
+.achievement-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+.achievement-card{position:relative;border:2px solid #dbc39d;border-radius:16px;background:#fffaf0;padding:16px 12px;text-align:center;min-height:160px;box-sizing:border-box}
+.achievement-card.unlocked{border-color:#d5a13c;background:linear-gradient(180deg,#fffdf2,#fff1c6);box-shadow:0 8px 20px rgba(128,75,27,.14)}
+.achievement-card.locked{filter:grayscale(1);opacity:.58}
+.achievement-icon{font-size:45px;line-height:1.1}.achievement-name{font-weight:900;color:#8d3d31;font-size:18px;margin:8px 0 5px}
+.achievement-condition{font-size:14px;color:#6f5543;line-height:1.45}.achievement-state{display:inline-block;margin-top:9px;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:900;background:#eee;color:#666}
+.achievement-card.unlocked .achievement-state{background:#9a4034;color:#fff8de}
+.achievement-toast{position:fixed;left:50%;top:18%;z-index:500;transform:translate(-50%,-18px) scale(.94);opacity:0;pointer-events:none;background:#fff7cf;border:4px double #c59545;border-radius:18px;padding:14px 22px;text-align:center;color:#873b30;font-weight:900;box-shadow:0 14px 38px #0004;transition:.35s}
+.achievement-toast.show{opacity:1;transform:translate(-50%,0) scale(1)}.achievement-toast .big{font-size:36px;display:block;margin-bottom:3px}
+@media(max-width:720px){.achievement-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:450px){.achievement-grid{grid-template-columns:1fr}}
+
 /* ===== 玩家资料登记设计版 ===== */
 .profile-gate{min-height:100vh;background:linear-gradient(180deg,#fff7e5 0%,#f7dca8 52%,#f2cf94 100%);padding:28px 14px 48px;color:#65432f}
 .profile-gate-inner{width:min(980px,100%);margin:0 auto}
@@ -211,7 +224,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
       <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
       <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
-      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
+      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
 
@@ -302,6 +315,14 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   <button class="btn" id="downloadRecordBtn">下载学习记录 CSV</button>
  </div>
 </div>
+<div class="modal" id="achievementModal">
+ <div class="panel">
+  <div class="top"><div><h2 style="margin-bottom:4px">🏅 大观园成就册</h2><div id="achievementSummary" class="badge">已解锁 0 / 6</div></div><button class="btn alt" id="closeAchievement">关闭</button></div>
+  <p>完成复园挑战即可自动获得徽章；已经达到条件的进度也会自动计算。</p>
+  <div id="achievementGrid" class="achievement-grid"></div>
+ </div>
+</div>
+<div id="achievementToast" class="achievement-toast" role="status" aria-live="polite"></div>
 <div class="modal" id="quizModal">
  <div class="panel">
   <div class="top">
@@ -699,6 +720,50 @@ function totalStarCount(){
     const r=records[s.name]||{};
     return sum+stageStarCount(r.correct,r.answered);
   },0);
+}
+const ACHIEVEMENTS=[
+  {id:"first_stage",icon:"🌱",name:"初入大观园",condition:"完成第1个景点关卡",test:()=>done()>=1},
+  {id:"combo_five",icon:"🔥",name:"连答如流",condition:"最高连击达到5次",test:()=>Number(state.bestCombo||0)>=5},
+  {id:"correct_thirty",icon:"📖",name:"博闻强记",condition:"累计答对30题",test:()=>Number(state.correct||0)>=30},
+  {id:"stars_thirty",icon:"🌟",name:"红楼学士",condition:"累计获得30颗星",test:()=>totalStarCount()>=30},
+  {id:"all_people",icon:"🎴",name:"群芳知己",condition:"解锁全部人物卡牌",test:()=>STAGES.every(s=>!!state.completed[s.name])},
+  {id:"all_stages",icon:"🏆",name:"复园大使",condition:"完成全部15关",test:()=>done()===STAGES.length}
+];
+function unlockedAchievements(){return ACHIEVEMENTS.filter(a=>a.test())}
+function achievementNoticeKey(){return "gardenAchievementsNotified::"+profileIdentityKey(playerProfile)}
+let achievementToastQueue=[],achievementToastBusy=false;
+function showNextAchievementToast(){
+  if(achievementToastBusy||!achievementToastQueue.length)return;
+  achievementToastBusy=true;
+  const a=achievementToastQueue.shift(),el=document.getElementById("achievementToast");
+  el.innerHTML='<span class="big">'+a.icon+'</span>获得新徽章：'+a.name;
+  requestAnimationFrame(()=>el.classList.add("show"));
+  setTimeout(()=>{el.classList.remove("show");setTimeout(()=>{achievementToastBusy=false;showNextAchievementToast()},380)},2300);
+}
+function checkAchievements(){
+  const unlocked=unlockedAchievements(),ids=unlocked.map(a=>a.id),key=achievementNoticeKey();
+  const raw=localStorage.getItem(key);
+  if(raw===null){localStorage.setItem(key,JSON.stringify(ids));return unlocked}
+  let notified=[];try{notified=JSON.parse(raw)||[]}catch{}
+  const fresh=unlocked.filter(a=>!notified.includes(a.id));
+  if(fresh.length){
+    localStorage.setItem(key,JSON.stringify([...new Set([...notified,...ids])]));
+    achievementToastQueue.push(...fresh);showNextAchievementToast();
+  }
+  return unlocked;
+}
+function renderAchievements(){
+  const unlocked=checkAchievements(),unlockedIds=new Set(unlocked.map(a=>a.id));
+  const grid=document.getElementById("achievementGrid");
+  document.getElementById("achievementSummary").textContent="已解锁 "+unlocked.length+" / "+ACHIEVEMENTS.length;
+  document.getElementById("achievementCount").textContent=unlocked.length+"/"+ACHIEVEMENTS.length;
+  grid.innerHTML="";
+  ACHIEVEMENTS.forEach(a=>{
+    const isUnlocked=unlockedIds.has(a.id),card=document.createElement("div");
+    card.className="achievement-card "+(isUnlocked?"unlocked":"locked");
+    card.innerHTML='<div class="achievement-icon">'+(isUnlocked?a.icon:"🔒")+'</div><div class="achievement-name">'+a.name+'</div><div class="achievement-condition">'+a.condition+'</div><span class="achievement-state">'+(isUnlocked?"已获得":"尚未获得")+'</span>';
+    grid.appendChild(card);
+  });
 }
 function unlocked(){ return Math.min(done(), STAGES.length-1); }
 function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
@@ -1367,6 +1432,9 @@ function renderStats(){
   comboCount.textContent=state.combo;
   doneCount.textContent=d;
   starCount.textContent=totalStarCount();
+  const earned=checkAchievements();
+  const achievementCounter=document.getElementById("achievementCount");
+  if(achievementCounter)achievementCounter.textContent=earned.length+"/"+ACHIEVEMENTS.length;
   overallBar.style.width=(d/STAGES.length*100)+"%";
   drawMap();
   renderCollection();
@@ -1685,6 +1753,8 @@ function renderLearningRecord(){
 }
 reportBtn.addEventListener("click",()=>{renderLearningRecord();recordModal.classList.add("show")});
 closeRecord.addEventListener("click",()=>recordModal.classList.remove("show"));
+achievementBtn.addEventListener("click",()=>{renderAchievements();achievementModal.classList.add("show")});
+closeAchievement.addEventListener("click",()=>achievementModal.classList.remove("show"));
 downloadRecordBtn.addEventListener("click",()=>{
   const lines=[]; if(playerProfile){lines.push(["姓名",playerProfile.name],["身份",playerProfile.role==="student"?"学生":"教职员"],[playerProfile.role==="student"?"班级":"部门／职务",playerProfile.role==="student"?playerProfile.className:playerProfile.department],[playerProfile.role==="student"?"学号":"教职员编号",playerProfile.id],[]);} lines.push(["关卡","完成状态","星级","正确题数","答题数","本关得分","本关金币","更新时间"]);
   learningRows().forEach(r=>lines.push([r.stage,r.completed?"已完成":"未完成",r.completed?stageStarsText(r.correct,r.answered):"",r.correct,r.answered,r.score,r.coins,r.updated]));
