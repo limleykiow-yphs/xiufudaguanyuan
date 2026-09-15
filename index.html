@@ -422,6 +422,8 @@ function loadLatestGameConfig(){
 }
 const ACTIVE_GAME_CONFIG=loadLatestGameConfig();
 const STAGES = ACTIVE_GAME_CONFIG.stages;
+const CHARACTERS = ACTIVE_GAME_CONFIG.characters || GAME_CONFIG.characters || [];
+const POEMS = ACTIVE_GAME_CONFIG.poems || GAME_CONFIG.poems || [];
 const SETTINGS = ACTIVE_GAME_CONFIG.settings || {
   questionsPerStage:5, scorePerCorrect:10, coinsPerCorrect:20,
   firstClearScore:50, firstClearCoins:100, comboStart:3,
