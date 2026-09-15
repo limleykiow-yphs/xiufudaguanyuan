@@ -127,6 +127,10 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 @media(max-width:720px){.achievement-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:450px){.achievement-grid{grid-template-columns:1fr}}
 
+/* ===== 金币商店 ===== */
+.shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.shop-card{border:2px solid #dbc39d;border-radius:16px;background:#fffaf0;padding:15px;text-align:center}.shop-card.owned{border-color:#c99a38;background:#fff5d5}.shop-icon{font-size:42px}.shop-name{font-size:18px;font-weight:900;color:#8d3d31;margin:7px 0}.shop-price{font-weight:900;color:#9b5a19;margin:8px 0}.shop-desc{font-size:14px;color:#6f5543;min-height:42px}.shop-card .btn{width:100%;margin-top:6px}.shop-balance{font-size:18px;font-weight:900;color:#8d3d31}.shop-owned-mark{font-size:13px;color:#6f7740;font-weight:900}.shop-memorial{display:none}.equip-memorial .shop-memorial{display:inline-flex}.equip-jade #currentPlayerBadge{border:2px solid #4f9b68;box-shadow:0 0 0 3px #bce4c8,0 5px 14px #315e4033}.equip-gold .canvas-wrap{border-color:#d6a72b;box-shadow:0 0 0 4px #f5d96b88,0 0 28px #ddb33866}.equip-petals .game-shell:before{content:"🌸　✿　🌸　✿　🌸";position:fixed;left:50%;top:4px;transform:translateX(-50%);z-index:40;pointer-events:none;font-size:23px;letter-spacing:12px;opacity:.8;white-space:nowrap;animation:shopPetalSway 3s ease-in-out infinite alternate}@keyframes shopPetalSway{to{transform:translateX(-50%) translateY(7px)}}
+@media(max-width:720px){.shop-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:450px){.shop-grid{grid-template-columns:1fr}}
+
 /* ===== 玩家资料登记设计版 ===== */
 .profile-gate{min-height:100vh;background:linear-gradient(180deg,#fff7e5 0%,#f7dca8 52%,#f2cf94 100%);padding:28px 14px 48px;color:#65432f}
 .profile-gate-inner{width:min(980px,100%);margin:0 auto}
@@ -223,8 +227,8 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">❌ 错误 <span id="wrongCount">0</span></span>
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
       <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
-      <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
-      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
+      <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
+      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
 
@@ -323,6 +327,13 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
  </div>
 </div>
 <div id="achievementToast" class="achievement-toast" role="status" aria-live="polite"></div>
+<div class="modal" id="shopModal">
+ <div class="panel">
+  <div class="top"><div><h2 style="margin-bottom:5px">🛍️ 大观园金币商店</h2><div class="shop-balance">我的金币：🪙 <span id="shopBalance">0</span></div></div><button class="btn alt" id="closeShop">关闭</button></div>
+  <p>金币只用于购买装饰，不影响答题、分数和关卡公平性。商品购买后永久解锁。</p>
+  <div id="shopGrid" class="shop-grid"></div>
+ </div>
+</div>
 <div class="modal" id="quizModal">
  <div class="panel">
   <div class="top">
@@ -763,6 +774,51 @@ function renderAchievements(){
     card.className="achievement-card "+(isUnlocked?"unlocked":"locked");
     card.innerHTML='<div class="achievement-icon">'+(isUnlocked?a.icon:"🔒")+'</div><div class="achievement-name">'+a.name+'</div><div class="achievement-condition">'+a.condition+'</div><span class="achievement-state">'+(isUnlocked?"已获得":"尚未获得")+'</span>';
     grid.appendChild(card);
+  });
+}
+const SHOP_ITEMS=[
+  {id:"jade",icon:"💚",name:"翡翠头像框",price:300,desc:"为玩家姓名加上清雅翡翠边框。"},
+  {id:"petals",icon:"🌸",name:"落花装饰",price:500,desc:"在游戏页面上方增添轻柔花瓣装饰。"},
+  {id:"gold",icon:"✨",name:"金色修复地图",price:800,desc:"为大观园地图加上金色光辉边框。"},
+  {id:"memorial",icon:"🏵️",name:"大观园纪念章",price:1000,desc:"在成绩栏展示专属复园纪念章。"},
+  {id:"title",icon:"👑",name:"金陵雅士称号",price:1500,desc:"在玩家姓名后显示“金陵雅士”。"}
+];
+function getShopData(){
+  state.stageRecords=state.stageRecords||{};
+  const old=state.stageRecords.__shop;
+  if(!old||typeof old!=="object")state.stageRecords.__shop={owned:[],equipped:[]};
+  const shop=state.stageRecords.__shop;
+  if(!Array.isArray(shop.owned))shop.owned=[];
+  if(!Array.isArray(shop.equipped))shop.equipped=[];
+  shop.equipped=shop.equipped.filter(id=>shop.owned.includes(id));
+  return shop;
+}
+function isShopEquipped(id){return getShopData().equipped.includes(id)}
+function applyShopEffects(){
+  const shop=getShopData();
+  SHOP_ITEMS.forEach(item=>document.body.classList.toggle("equip-"+item.id,shop.equipped.includes(item.id)));
+  const badge=document.getElementById("currentPlayerBadge");
+  if(badge&&badge.dataset.baseText)badge.textContent=badge.dataset.baseText+(shop.equipped.includes("title")?" · 金陵雅士":"");
+}
+function renderShop(){
+  const shop=getShopData(),grid=document.getElementById("shopGrid");
+  document.getElementById("shopBalance").textContent=state.coins||0;grid.innerHTML="";
+  SHOP_ITEMS.forEach(item=>{
+    const owned=shop.owned.includes(item.id),equipped=shop.equipped.includes(item.id),card=document.createElement("div"),button=document.createElement("button");
+    card.className="shop-card "+(owned?"owned":"");
+    card.innerHTML='<div class="shop-icon">'+item.icon+'</div><div class="shop-name">'+item.name+'</div><div class="shop-desc">'+item.desc+'</div><div class="shop-price">🪙 '+item.price+' 金币</div>'+(owned?'<div class="shop-owned-mark">✓ 已永久拥有</div>':'');
+    button.className="btn "+(owned?"alt":"");button.textContent=owned?(equipped?"取消装备":"立即装备"):(Number(state.coins||0)>=item.price?"购买":"金币不足");
+    button.disabled=!owned&&Number(state.coins||0)<item.price;
+    button.addEventListener("click",()=>{
+      if(!owned){
+        if(Number(state.coins||0)<item.price)return;
+        if(!confirm("确定花费 "+item.price+" 金币购买“"+item.name+"”吗？"))return;
+        state.coins-=item.price;shop.owned.push(item.id);shop.equipped.push(item.id);showReward("购得 "+item.icon+" "+item.name);
+      }else if(equipped)shop.equipped=shop.equipped.filter(id=>id!==item.id);
+      else shop.equipped.push(item.id);
+      save();applyShopEffects();renderStats();renderShop();
+    });
+    card.appendChild(button);grid.appendChild(card);
   });
 }
 function unlocked(){ return Math.min(done(), STAGES.length-1); }
@@ -1435,6 +1491,7 @@ function renderStats(){
   const earned=checkAchievements();
   const achievementCounter=document.getElementById("achievementCount");
   if(achievementCounter)achievementCounter.textContent=earned.length+"/"+ACHIEVEMENTS.length;
+  applyShopEffects();
   overallBar.style.width=(d/STAGES.length*100)+"%";
   drawMap();
   renderCollection();
@@ -1665,7 +1722,8 @@ musicBtn.addEventListener("click",()=>{
 resetBtn.addEventListener("click",()=>{
   playClick();
   if(confirm("确定清除全部进度吗？")){
-    state={score:0,coins:0,correct:0,wrong:0,answered:0,combo:0,bestCombo:0,completed:{},music:true};save();renderStats();
+    const permanentShop=getShopData();
+    state={score:0,coins:0,correct:0,wrong:0,answered:0,combo:0,bestCombo:0,completed:{},music:true,stageRecords:{__shop:permanentShop}};save();renderStats();
   }
 });
 function showResult(){
@@ -1755,6 +1813,8 @@ reportBtn.addEventListener("click",()=>{renderLearningRecord();recordModal.class
 closeRecord.addEventListener("click",()=>recordModal.classList.remove("show"));
 achievementBtn.addEventListener("click",()=>{renderAchievements();achievementModal.classList.add("show")});
 closeAchievement.addEventListener("click",()=>achievementModal.classList.remove("show"));
+shopBtn.addEventListener("click",()=>{renderShop();shopModal.classList.add("show")});
+closeShop.addEventListener("click",()=>shopModal.classList.remove("show"));
 downloadRecordBtn.addEventListener("click",()=>{
   const lines=[]; if(playerProfile){lines.push(["姓名",playerProfile.name],["身份",playerProfile.role==="student"?"学生":"教职员"],[playerProfile.role==="student"?"班级":"部门／职务",playerProfile.role==="student"?playerProfile.className:playerProfile.department],[playerProfile.role==="student"?"学号":"教职员编号",playerProfile.id],[]);} lines.push(["关卡","完成状态","星级","正确题数","答题数","本关得分","本关金币","更新时间"]);
   learningRows().forEach(r=>lines.push([r.stage,r.completed?"已完成":"未完成",r.completed?stageStarsText(r.correct,r.answered):"",r.correct,r.answered,r.score,r.coins,r.updated]));
@@ -1777,7 +1837,8 @@ function renderPlayerEntry(){
   if(playerProfile && playerToken){
     profileGate.style.display="none";gameShell.style.display="block";
     const extra=playerProfile.role==="student"?(playerProfile.className?" · "+playerProfile.className:""):(playerProfile.department?" · "+playerProfile.department:"");
-    currentPlayerBadge.textContent=(playerProfile.avatar==="男复园使"?"👨🏻 ":"👩🏻 ")+playerProfile.name+extra;
+    currentPlayerBadge.dataset.baseText=(playerProfile.avatar==="男复园使"?"👨🏻 ":"👩🏻 ")+playerProfile.name+extra;
+    applyShopEffects();
   }else{
     profileGate.style.display="block";gameShell.style.display="none";
     if(playerProfile && !playerToken){
