@@ -422,6 +422,17 @@ function loadLatestGameConfig(){
 }
 const ACTIVE_GAME_CONFIG=loadLatestGameConfig();
 const STAGES = ACTIVE_GAME_CONFIG.stages;
+// 每关使用独立的精美景点插图；题库与教师后台资料保持不变。
+const STAGE_SCENE_IMAGES=[
+  "stages/stage01.webp","stages/stage02.webp","stages/stage03.webp",
+  "stages/stage04.webp","stages/stage05.webp","stages/stage06.webp",
+  "stages/stage07.webp","stages/stage08.webp","stages/stage09.webp",
+  "stages/stage10.webp","stages/stage11.webp","stages/stage12.webp",
+  "stages/stage13.webp","stages/stage14.webp","stages/stage15.webp"
+];
+STAGES.forEach((stage,index)=>{
+  if(STAGE_SCENE_IMAGES[index])stage.image=STAGE_SCENE_IMAGES[index];
+});
 const CHARACTERS = ACTIVE_GAME_CONFIG.characters || GAME_CONFIG.characters || [];
 const POEMS = ACTIVE_GAME_CONFIG.poems || GAME_CONFIG.poems || [];
 const SETTINGS = ACTIVE_GAME_CONFIG.settings || {
