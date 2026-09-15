@@ -118,6 +118,10 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 .guide-thumb{width:100%;aspect-ratio:480/260;object-fit:cover;border-radius:10px;border:1px solid #d8bd94;margin-bottom:7px;background:#f5ead8}
 .card-scene-image{display:block;width:min(560px,100%);max-height:300px;object-fit:cover;margin:0 auto 14px;border-radius:16px;border:3px double #d0a34e;background:#fff}
 .repair-scene-image{display:block;width:min(520px,100%);max-height:230px;object-fit:cover;margin:8px auto 10px;border-radius:14px;border:2px solid #d8bd94;background:#fff}
+.wrongbook-summary{font-size:17px;font-weight:900;color:#8d3d31;margin:8px 0 12px}
+.wrongbook-list{display:grid;gap:9px;max-height:48vh;overflow:auto;margin:12px 0}
+.wrongbook-item{background:#fffaf0;border:1px solid #d8bd94;border-radius:12px;padding:10px 12px}
+.wrongbook-item b{color:#8d3d31}.answer-explanation{display:block;margin-top:7px;padding-top:7px;border-top:1px dashed #d8bd94;color:#624735}
 
 /* ===== 成就徽章系统 ===== */
 .achievement-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
@@ -233,7 +237,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
       <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
       <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
-      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
+      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
 
@@ -329,6 +333,15 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   <div class="top"><h2>📊 我的学习记录</h2><button class="btn alt" id="closeRecord">关闭</button></div>
   <div id="recordContent" class="note"></div>
   <button class="btn" id="downloadRecordBtn">下载学习记录 CSV</button>
+ </div>
+</div>
+<div class="modal" id="wrongBookModal">
+ <div class="panel">
+  <div class="top"><h2>📕 我的错题本</h2><button class="btn alt" id="closeWrongBook">关闭</button></div>
+  <div id="wrongBookSummary" class="wrongbook-summary">目前没有错题。</div>
+  <p>答错的题目会自动收录；重练答对后自动移除。错题重练不增加分数、金币、连击或成就进度。</p>
+  <div id="wrongBookList" class="wrongbook-list"></div>
+  <button class="btn" id="startWrongReview">开始错题重练</button>
  </div>
 </div>
 <div class="modal" id="achievementModal">
@@ -597,6 +610,7 @@ let celebrationStart=0;
 let activeMapRepair=null;
 let mapInputLocked=false;
 let practiceMode=false;
+let wrongReviewMode=false;
 let pendingPracticeStage=null;
 let stageScore=0, stageCoins=0, stageCorrect=0, stageCombo=0, stageBestCombo=0;
 let displayRect={x:0,y:0,w:canvas.width,h:canvas.height};
@@ -738,6 +752,37 @@ function showNextStageHint(stage){
 }
 
 function save(){ localStorage.setItem(stateStorageKey(), JSON.stringify(state)); cloudSaveProgressSoon(); }
+function wrongBookEntries(){
+  state.stageRecords=state.stageRecords||{};
+  if(!Array.isArray(state.stageRecords.__wrongBook))state.stageRecords.__wrongBook=[];
+  return state.stageRecords.__wrongBook;
+}
+function wrongQuestionKey(q,stageName){return String(q.id||stageName+"::"+q.q)}
+function addWrongQuestion(q,stageName){
+  const list=wrongBookEntries(),key=wrongQuestionKey(q,stageName);
+  const item={id:q.id||"",key,stageName,q:q.q,a:[...q.a],c:q.c,exp:q.exp||"暂无解析。",type:q.type||"",level:q.level||""};
+  const found=list.findIndex(x=>(x.key||wrongQuestionKey(x,x.stageName))===key);
+  if(found>=0)list[found]=item;else list.push(item);
+}
+function removeWrongQuestion(q){
+  const list=wrongBookEntries(),key=q.key||wrongQuestionKey(q,q.stageName||"");
+  state.stageRecords.__wrongBook=list.filter(x=>(x.key||wrongQuestionKey(x,x.stageName))!==key);
+}
+function renderWrongBook(){
+  const list=wrongBookEntries();
+  if(document.getElementById("wrongBookCount"))wrongBookCount.textContent=list.length;
+  if(!document.getElementById("wrongBookList"))return;
+  wrongBookSummary.textContent=list.length?"共有 "+list.length+" 道待重练错题。":"太好了，目前没有待重练错题。";
+  wrongBookList.innerHTML="";
+  list.forEach((q,i)=>{
+    const item=document.createElement("div");item.className="wrongbook-item";
+    const title=document.createElement("b");title.textContent=(i+1)+". 【"+(q.stageName||"未分类")+"】"+q.q;
+    const answer=document.createElement("div");answer.textContent="正确答案："+(q.a?.[q.c]||"");
+    item.append(title,answer);wrongBookList.appendChild(item);
+  });
+  startWrongReview.disabled=list.length===0;
+  startWrongReview.textContent=list.length?"开始错题重练（"+list.length+"题）":"暂无错题";
+}
 function done(){ return STAGES.filter(s=>state.completed[s.name]).length; }
 function stageStarCount(correct,answered){
   const c=Number(correct||0),a=Number(answered||0);
@@ -1537,13 +1582,16 @@ function renderStats(){
   const achievementCounter=document.getElementById("achievementCount");
   if(achievementCounter)achievementCounter.textContent=earned.length+"/"+ACHIEVEMENTS.length;
   applyShopEffects();
+  renderWrongBook();
   overallBar.style.width=(d/STAGES.length*100)+"%";
   drawMap();
   renderCollection();
   updateStageLabel();
   if(d===STAGES.length)setTimeout(showResult,300);
 }
-function openStage(s){
+function openStage(s,isPractice=false){
+  practiceMode=!!isPractice;
+  wrongReviewMode=false;
   current=s;
   state.stageRecords=state.stageRecords||{};
   const savedRound=!practiceMode ? state.stageRecords.__activeRound : null;
@@ -1584,16 +1632,17 @@ function persistActiveRound(nextIndex){
 function showQuestion(){
   answered=false;nextBtn.classList.add("hidden");
   const q=pool[idx];
-  stageTitle.textContent=current.n+". "+current.name;
+  stageTitle.textContent=wrongReviewMode?"📕 错题重练":current.n+". "+current.name;
+  const displayStage=wrongReviewMode?(STAGES.find(s=>s.name===q.stageName)||current):current;
   if(document.getElementById("stageSceneImage")){
-    stageSceneImage.src=current.image||"";
-    stageSceneImage.alt=current.name+"景点插图";
-    stageSceneImage.style.display=current.image?"block":"none";
+    stageSceneImage.src=displayStage.image||"";
+    stageSceneImage.alt=displayStage.name+"景点插图";
+    stageSceneImage.style.display=displayStage.image?"block":"none";
   }
-  stagePerson.textContent=(practiceMode?"【练习模式】 ":"")+
+  stagePerson.textContent=wrongReviewMode?"【不计分】 来源关卡："+(q.stageName||"未分类"):(practiceMode?"【练习模式】 ":"")+
     "人物线索："+(current.clue||"完成关卡后解锁代表人物。")+
     "｜代表人物："+personLabel(current);
-  repairText.textContent="修复任务："+current.repair;
+  repairText.textContent=wrongReviewMode?"答对后，这道题会自动从错题本移除。":"修复任务："+current.repair;
   questionText.textContent=(idx+1)+". "+q.q;
   quizBar.style.width=(idx/pool.length*100)+"%";
   feedback.textContent="请选择答案。";
@@ -1614,6 +1663,7 @@ function choose(i,b){
   if(i===q.c){
     playSound(correctSfx);
     stageCorrect++;
+    if(wrongReviewMode)removeWrongQuestion(q);
     if(!practiceMode || SETTINGS.practiceRewards){
       state.correct++;
       state.combo++;
@@ -1635,20 +1685,21 @@ function choose(i,b){
       state.coins+=gainedCoins;
       stageScore+=gainedScore;
       stageCoins+=gainedCoins;
-      feedback.innerHTML="✅ 正确！获得 <b>"+gainedScore+"分</b> 与 <b>"+gainedCoins+"金币</b>。<br>"+q.exp;
+      feedback.innerHTML="✅ 正确！获得 <b>"+gainedScore+"分</b> 与 <b>"+gainedCoins+"金币</b>。<span class='answer-explanation'><b>知识解析：</b>"+(q.exp||"暂无解析。")+"</span>";
       showReward("+"+gainedScore+" ⭐  +"+gainedCoins+" 🪙");
     }else{
-      feedback.innerHTML="✅ 回答正确！练习模式不增加得分与金币。<br>"+q.exp;
+      feedback.innerHTML="✅ 回答正确！"+(wrongReviewMode?"这道题已从错题本移除。":"练习模式不增加得分与金币。")+"<span class='answer-explanation'><b>知识解析：</b>"+(q.exp||"暂无解析。")+"</span>";
     }
   }else{
     playSound(wrongSfx);
+    addWrongQuestion(q,wrongReviewMode?(q.stageName||"未分类"):current.name);
     if(!practiceMode || SETTINGS.practiceRewards){
       state.wrong++;
       state.combo=0;
       stageCombo=0;
     }
     b.classList.add("wrong");
-    feedback.innerHTML="❌ 正确答案："+q.a[q.c]+"<br>"+q.exp;
+    feedback.innerHTML="❌ 已收录到错题本。正确答案：<b>"+q.a[q.c]+"</b><span class='answer-explanation'><b>知识解析：</b>"+(q.exp||"暂无解析。")+"</span>";
     if(!practiceMode || SETTINGS.practiceRewards) showReward("连击中断");
   }
 
@@ -1658,14 +1709,15 @@ function choose(i,b){
   nextBtn.classList.remove("hidden");
   nextBtn.textContent=idx===pool.length-1?"完成本关":"下一题";
   renderStats();
+  renderWrongBook();
 }
 function finishCurrentStage(){
     if(practiceMode){
       save();
       quizModal.classList.remove("show");
-      settlementTitle.textContent=current.name+"练习完成";
-      settlementMessage.textContent="本次为复习练习，修复成果维持不变";
-      settlementPerson.textContent="📖 本次练习不计入正式奖励";
+      settlementTitle.textContent=wrongReviewMode?"错题重练完成":current.name+"练习完成";
+      settlementMessage.textContent=wrongReviewMode?"已掌握的题目已从错题本自动移除":"本次为复习练习，修复成果维持不变";
+      settlementPerson.textContent="📖 本次练习不计入分数、金币或正式奖励";
       stageScoreResult.textContent="不计分";
       stageCoinsResult.textContent="不奖励";
       stageCorrectResult.textContent=stageCorrect+" / "+pool.length;
@@ -1674,9 +1726,6 @@ function finishCurrentStage(){
       nextStageBtn.classList.add("hidden");
       continueMapBtn.textContent="返回地图";
       settlementModal.classList.add("show");
-    showRepairTitle(current);
-    const nextStage=STAGES[currentIndex+1];
-    if(nextStage)setTimeout(()=>showNextStageHint(nextStage),700);
       renderStats();
       return;
     }
@@ -1735,7 +1784,19 @@ nextBtn.addEventListener("click",()=>{
   if(idx<pool.length-1){idx++;showQuestion();}
   else finishCurrentStage();
 });
-closeQuiz.addEventListener("click",()=>{quizModal.classList.remove("show")});
+closeQuiz.addEventListener("click",()=>{quizModal.classList.remove("show");if(practiceMode){practiceMode=false;wrongReviewMode=false}});
+wrongBookBtn.addEventListener("click",()=>{renderWrongBook();wrongBookModal.classList.add("show")});
+closeWrongBook.addEventListener("click",()=>wrongBookModal.classList.remove("show"));
+startWrongReview.addEventListener("click",()=>{
+  const list=wrongBookEntries();
+  if(!list.length)return;
+  wrongBookModal.classList.remove("show");
+  wrongReviewMode=true;practiceMode=true;
+  current={n:"",name:"错题重练",clue:"",repair:"",image:""};
+  pool=list.map(q=>({...q,a:[...(q.a||[])]}));
+  idx=0;stageAnswered=0;stageScore=0;stageCoins=0;stageCorrect=0;stageCombo=0;stageBestCombo=0;
+  quizModal.classList.add("show");showQuestion();
+});
 practiceBtn.addEventListener("click",()=>{
   
   practiceModal.classList.remove("show");
@@ -1751,7 +1812,7 @@ nextStageBtn.addEventListener("click",()=>{
   if(i>=0 && i<STAGES.length-1) openStage(STAGES[i+1],false);
 });
 continueMapBtn.addEventListener("click",()=>{
-  settlementModal.classList.remove("show");practiceMode=false;
+  settlementModal.classList.remove("show");practiceMode=false;wrongReviewMode=false;renderWrongBook();
 });
 beforeBtn.addEventListener("click",()=>{compareMode="before";updateStageLabel();drawMap()});
 afterBtn.addEventListener("click",()=>{compareMode="current";updateStageLabel();drawMap()});
