@@ -208,8 +208,10 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   #dailyChallengeBtn{order:-3}
   #wrongBookBtn{order:-2}
   #mobileMoreBtn{order:-1}
-  .compare-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:5px;-webkit-overflow-scrolling:touch}
-  .compare-row>*{flex:0 0 auto;min-height:40px;box-sizing:border-box}
+  .compare-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;overflow:visible;padding-bottom:4px}
+  .compare-row>*{width:100%;min-width:0;min-height:42px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal}
+  .compare-row .pill:first-child,#openMapZoomBtn{grid-column:1/-1}
+  .compare-row .btn{font-size:14px;padding:9px 7px}
   .canvas-wrap{border-width:2px;border-radius:12px}
   .map-status-panel{top:5px;right:5px;min-width:105px;padding:5px 7px;border-radius:9px}
   .map-status-panel div{font-size:9px;gap:6px;padding:2px 0}
@@ -1524,11 +1526,36 @@ function drawMapRepairAnimation(){
 
   ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
 
+  // 国风聚焦：柔和压暗四周，只突出正在修复的景点。
+  const focusRadius=Math.min(canvas.width,canvas.height)*.34;
+  const vignette=ctx.createRadialGradient(x,y,55,x,y,focusRadius);
+  vignette.addColorStop(0,"rgba(70,45,30,0)");
+  vignette.addColorStop(.52,"rgba(70,45,30,.05)");
+  vignette.addColorStop(1,"rgba(46,28,20,.28)");
+  ctx.fillStyle=vignette;ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // 暖金双环与细小光点，保持轻柔，不遮住地图文字。
+  const pulse=.5+.5*Math.sin(performance.now()/360);
+  ctx.save();ctx.translate(x,y);ctx.rotate(elapsed/2400);
+  [62,78].forEach((radius,index)=>{
+    ctx.beginPath();ctx.arc(0,0,radius+pulse*5,0,Math.PI*1.48);
+    ctx.strokeStyle=index?"rgba(255,224,139,.42)":"rgba(255,244,192,.72)";
+    ctx.lineWidth=index?2:3;ctx.stroke();
+  });
+  for(let i=0;i<10;i++){
+    const angle=i*Math.PI/5-elapsed/1700;
+    const radius=70+(i%3)*13;
+    const px=Math.cos(angle)*radius,py=Math.sin(angle)*radius*.68;
+    ctx.fillStyle=`rgba(255,232,151,${.35+(i%2)*.22})`;
+    ctx.beginPath();ctx.arc(px,py,2+(i%3),0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+
   // 1. 清理环境
   if(elapsed<1300){
-    ctx.fillStyle="rgba(73,61,49,.32)";
+    ctx.fillStyle="rgba(73,61,49,.22)";
     ctx.beginPath();ctx.arc(x,y,88,0,Math.PI*2);ctx.fill();
-    ctx.font="36px serif";ctx.fillText("🧹　🪨　🧹",x,y-62);
+    ctx.font="28px serif";ctx.fillText("🧹　清理整饬",x,y-62);
     ctx.globalAlpha=.55;ctx.font="24px serif";
     for(let i=0;i<6;i++)ctx.fillText("·",x-55+i*22,y+35+Math.sin(Date.now()/120+i)*8);
   }
@@ -1536,8 +1563,8 @@ function drawMapRepairAnimation(){
   // 2. 修补建筑
   if(elapsed>=900&&elapsed<2800){
     const shake=Math.sin(Date.now()/70)*3;
-    ctx.font="38px serif";ctx.fillText("🔨　🪚　🔨",x+shake,y-68);
-    ctx.strokeStyle="rgba(198,143,54,.9)";ctx.lineWidth=5;
+    ctx.font="29px serif";ctx.fillText("🔨　修梁补瓦",x+shake,y-68);
+    ctx.strokeStyle="rgba(213,165,76,.78)";ctx.lineWidth=4;
     ctx.beginPath();ctx.arc(x,y,48+(elapsed-900)/40,0,Math.PI*2);ctx.stroke();
   }
 
@@ -1549,17 +1576,17 @@ function drawMapRepairAnimation(){
     g.addColorStop(.4,"rgba(255,218,82,.62)");
     g.addColorStop(1,"rgba(255,191,22,0)");
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();
-    ctx.font="34px serif";ctx.fillText("✨　✨　✨",x,y-76);
+    ctx.font="29px serif";ctx.fillText("✨　修缮焕新　✨",x,y-76);
   }
 
   // 4. 景物恢复
   if(elapsed>=3800){
     drawStageRepair(stage,x,y,true);
     ctx.globalAlpha=Math.min(1,(elapsed-3800)/900);
-    ctx.font="30px serif";
+    ctx.font="27px serif";
     syms.forEach((sym,i)=>{
-      const a=i*Math.PI/2+Date.now()/1000;
-      ctx.fillText(sym,x+Math.cos(a)*88,y+Math.sin(a)*58);
+      const a=i*Math.PI/2+Date.now()/1350;
+      ctx.fillText(sym,x+Math.cos(a)*82,y+Math.sin(a)*52);
     });
   }
 
@@ -1596,13 +1623,20 @@ function drawMapRepairAnimation(){
     boxX=Math.max(10,Math.min(canvas.width-boxWidth-10,boxX));
     boxY=Math.max(10,Math.min(canvas.height-boxHeight-10,boxY));
 
-    ctx.fillStyle="rgba(91,45,35,.88)";
-    ctx.strokeStyle="rgba(229,190,110,.92)";
-    ctx.lineWidth=2;
+    const titleBg=ctx.createLinearGradient(boxX,boxY,boxX,boxY+boxHeight);
+    titleBg.addColorStop(0,"rgba(111,55,41,.96)");
+    titleBg.addColorStop(1,"rgba(77,37,30,.94)");
+    ctx.shadowColor="rgba(45,25,18,.35)";ctx.shadowBlur=12;ctx.shadowOffsetY=5;
+    ctx.fillStyle=titleBg;
+    ctx.strokeStyle="rgba(239,207,137,.96)";
+    ctx.lineWidth=3;
     ctx.beginPath();
     ctx.roundRect(boxX,boxY,boxWidth,boxHeight,12);
     ctx.fill();
     ctx.stroke();
+    ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    ctx.strokeStyle="rgba(255,239,190,.38)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(boxX+5,boxY+5,boxWidth-10,boxHeight-10,8);ctx.stroke();
 
     ctx.font=`bold ${titleSize}px Microsoft YaHei`;
     ctx.fillStyle=SETTINGS.repairTitleColor||"#FFE7A3";
