@@ -1751,11 +1751,12 @@ function drawMap(){
     ctx.restore();
   });
 
-  // Final celebration petals.
+  // 全园完成时只播放一次短暂庆祝；结束后不在地图上永久保留花朵或星光。
   if(d===STAGES.length && compareMode!=="before"){
     if(!celebrationStart)celebrationStart=Date.now();
-    if(celebrationPetals.length===0){
-      for(let i=0;i<80;i++){
+    const celebrationElapsed=Date.now()-celebrationStart;
+    if(celebrationElapsed<4200 && celebrationPetals.length===0){
+      for(let i=0;i<36;i++){
         celebrationPetals.push({
           x:Math.random()*canvas.width,
           y:Math.random()*-canvas.height,
@@ -1766,11 +1767,20 @@ function drawMap(){
         });
       }
     }
-    celebrationPetals.forEach(p=>{
-      p.y+=p.speed;p.x+=p.drift;
-      if(p.y>canvas.height+30){p.y=-30;p.x=Math.random()*canvas.width;}
-      ctx.font=p.size+"px serif";ctx.fillText(p.symbol,p.x,p.y);
-    });
+    if(celebrationElapsed<4200){
+      ctx.save();
+      ctx.globalAlpha=Math.min(1,(4200-celebrationElapsed)/900);
+      celebrationPetals.forEach(p=>{
+        p.y+=p.speed;p.x+=p.drift;
+        ctx.font=p.size+"px serif";ctx.fillText(p.symbol,p.x,p.y);
+      });
+      ctx.restore();
+    }else if(celebrationPetals.length){
+      celebrationPetals=[];
+    }
+  }else if(celebrationStart||celebrationPetals.length){
+    celebrationStart=0;
+    celebrationPetals=[];
   }
 }
 
