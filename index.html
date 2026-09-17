@@ -123,7 +123,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 .wrongbook-item{background:#fffaf0;border:1px solid #d8bd94;border-radius:12px;padding:10px 12px}
 .wrongbook-item b{color:#8d3d31}.answer-explanation{display:block;margin-top:7px;padding-top:7px;border-top:1px dashed #d8bd94;color:#624735}
 .treasure-layer{position:absolute;inset:0;z-index:12;pointer-events:none}
-.treasure-marker{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;font-size:34px;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 3px 3px #5b321f88);animation:treasurePulse 1.25s ease-in-out infinite alternate;padding:8px}
+.treasure-marker{position:absolute;transform:translate(-50%,-50%);border:2px solid #f4c754;background:rgba(255,250,210,.92);border-radius:50%;font-size:31px;line-height:1;width:52px;height:52px;display:grid;place-items:center;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 3px 3px #5b321f88);animation:treasurePulse 1.25s ease-in-out infinite alternate;padding:0}
 .treasure-marker:hover{transform:translate(-50%,-50%) scale(1.18)}
 @keyframes treasurePulse{from{transform:translate(-50%,-50%) scale(.92)}to{transform:translate(-50%,-50%) scale(1.12);filter:drop-shadow(0 0 9px #ffe55c)}}
 .event-toast{position:fixed;left:50%;top:24%;z-index:650;transform:translate(-50%,-20px) scale(.95);opacity:0;pointer-events:none;background:linear-gradient(180deg,#fffbe7,#ffe8a8);border:4px double #c99538;border-radius:18px;padding:14px 22px;text-align:center;color:#82382d;font-weight:900;box-shadow:0 14px 40px #0004;transition:.3s;max-width:min(460px,88vw)}
@@ -794,7 +794,7 @@ function renderWrongBook(){
 function localDayKey(){
   const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
-const TREASURE_ICONS=["💎","🪭","🏮","📜","🌸","🧧"];
+const TREASURE_ICONS=["💎","🎁","🏮","📜","🌸","⭐"];
 const TREASURE_POSITIONS=[[18,57],[49,45],[82,62],[31,34],[69,76],[55,68]];
 function dailyTreasureData(){
   state.stageRecords=state.stageRecords||{};
