@@ -49,6 +49,11 @@ background:#fff6d8e8;border:6px double #c49b43;border-radius:24px;padding:18px 2
 font-size:clamp(26px,4vw,48px);font-weight:900;color:#8d3d31;z-index:8;display:none;
 box-shadow:0 12px 35px #0005;text-align:center}
 .final-banner.show{display:block;animation:bannerIn 1s ease}
+.final-banner{cursor:pointer;transition:left .45s,top .45s,bottom .45s,transform .45s,padding .45s,font-size .45s;border-radius .45s}
+.final-banner small{display:block;font-size:.42em;margin-top:7px;line-height:1.45}
+.final-banner .final-hint{font-size:.28em;margin-top:8px;color:#8a6a47}
+.final-banner.compact{left:12px;top:auto;bottom:12px;transform:none;padding:8px 13px;border-width:3px;border-radius:999px;font-size:16px;box-shadow:0 6px 18px #0003;animation:none}
+.final-banner.compact small,.final-banner.compact .final-hint{display:none}
 @keyframes bannerIn{from{opacity:0;transform:translate(-50%,-40%) scale(.75)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 
 .guide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -328,7 +333,11 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
     <button class="btn" id="openMapZoomBtn">🔍 放大地图</button>
   </div>
   <div class="canvas-wrap">
-    <div id="finalBanner" class="final-banner">🌸 梦回大观园 🌸<br><small>全园修复完成</small></div>
+    <div id="finalBanner" class="final-banner" role="button" tabindex="0" aria-label="全园修复完成庆典题签">
+      <div>🌸 梦回大观园 🌸</div>
+      <small><span id="finalBannerPlayer"></span>完成十五景修缮，全园芳华重现</small>
+      <div class="final-hint">点击题签可收起或再次展开</div>
+    </div>
     
 <div id="mapStatusPanel" class="map-status-panel">
   <div><span>📍 当前地点</span><b id="statusLocation">大观园正门</b></div>
@@ -733,6 +742,8 @@ let newlyUnlockedPerson="";
 let compareMode="current";
 let celebrationPetals=[];
 let celebrationStart=0;
+let finalBannerTimer=null;
+let finalBannerSeen=false;
 let activeMapRepair=null;
 let mapInputLocked=false;
 let practiceMode=false;
@@ -2073,6 +2084,7 @@ function startStableMapRepair(stage,callback){
     if(cb)cb();
   },(SETTINGS.repairAnimationDuration||6500)+150);
 }
+const finalBannerElement=document.getElementById("finalBanner");
 function updateStageLabel(){
   const d=done();
   let label="待修复";
@@ -2080,8 +2092,30 @@ function updateStageLabel(){
   else if(d>=8)label="繁华重现";
   else if(d>=4)label="修复进行中";
   mapStageLabel.textContent=label;
-  finalBanner.classList.toggle("show",d===STAGES.length && compareMode!=="before");
+  const completed=d===STAGES.length;
+  const visible=completed&&compareMode!=="before";
+  finalBannerElement.classList.toggle("show",visible);
+  const finalName=document.getElementById("finalBannerPlayer");
+  if(finalName)finalName.textContent=playerProfile?.name?playerProfile.name+"，":"";
+  if(visible&&!finalBannerSeen){
+    finalBannerSeen=true;
+    finalBannerElement.classList.remove("compact");
+    clearTimeout(finalBannerTimer);
+    finalBannerTimer=setTimeout(()=>finalBannerElement.classList.add("compact"),5000);
+  }else if(!completed){
+    finalBannerSeen=false;
+    finalBannerElement.classList.remove("compact");
+    clearTimeout(finalBannerTimer);
+  }
 }
+function toggleFinalBanner(){
+  if(!finalBannerElement.classList.contains("show"))return;
+  const compact=finalBannerElement.classList.toggle("compact");
+  clearTimeout(finalBannerTimer);
+  if(!compact)finalBannerTimer=setTimeout(()=>finalBannerElement.classList.add("compact"),5000);
+}
+finalBannerElement.addEventListener("click",toggleFinalBanner);
+finalBannerElement.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();toggleFinalBanner();}});
 function animationLoop(){
   drawMap();
   requestAnimationFrame(animationLoop);
