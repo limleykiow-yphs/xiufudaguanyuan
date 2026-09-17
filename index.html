@@ -245,7 +245,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
       <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
       <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill" id="treasureStatus">🎁 每日园中寻宝 <span id="treasureCount">0</span>/3</span><span class="pill" id="loginStreakPill">🔥 连续登录 <span id="loginStreakCount">0</span>天</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
-      <button class="btn" id="dailyTaskBtn">📅 每日任务 <span id="dailyTaskCount">0/3</span></button><button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
+      <button class="btn" id="dailyTaskBtn">📅 每日任务 <span id="dailyTaskCount">0/3</span></button><button class="btn" id="dailyChallengeBtn">🎯 每日挑战</button><button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
 
@@ -634,6 +634,7 @@ let activeMapRepair=null;
 let mapInputLocked=false;
 let practiceMode=false;
 let wrongReviewMode=false;
+let dailyChallengeMode=false;
 let pendingPracticeStage=null;
 let stageScore=0, stageCoins=0, stageCorrect=0, stageCombo=0, stageBestCombo=0;
 let displayRect={x:0,y:0,w:canvas.width,h:canvas.height};
@@ -815,8 +816,8 @@ function localDayNumber(key){
 }
 const DAILY_LOGIN_REWARDS=[20,30,40,50,60,80,100];
 const DAILY_TASKS=[
-  {id:"answer",icon:"📝",title:"红楼小试",desc:"完成5道正式关卡题目",target:5,reward:30},
-  {id:"correct",icon:"✅",title:"慧心识题",desc:"正式关卡答对3道题目",target:3,reward:40},
+  {id:"answer",icon:"📝",title:"红楼小试",desc:"完成5道关卡或每日挑战题目",target:5,reward:30},
+  {id:"correct",icon:"✅",title:"慧心识题",desc:"关卡或每日挑战答对3道题目",target:3,reward:40},
   {id:"treasure",icon:"🎁",title:"每日园中寻宝",desc:"找到2个园中宝物",target:2,reward:50}
 ];
 function dailyFunData(){
@@ -867,6 +868,7 @@ function renderDailyTasks(){
   const completed=DAILY_TASKS.filter(task=>Number(data[task.id]||0)>=task.target).length;
   dailyTaskCount.textContent=completed+"/"+DAILY_TASKS.length;dailyCompletedSummary.textContent=completed+" / "+DAILY_TASKS.length;
   dailyEventSummary.textContent=Math.min(3,data.randomEvents)+" / 3";
+  if(document.getElementById("dailyChallengeBtn"))dailyChallengeBtn.textContent=data.challengeCompleted?"🎯 再次挑战":"🎯 每日挑战";
   loginWeek.innerHTML="";
   DAILY_LOGIN_REWARDS.forEach((reward,index)=>{
     const day=index+1,box=document.createElement("div");
@@ -882,6 +884,31 @@ function renderDailyTasks(){
     const button=document.createElement("button");button.className="btn "+(claimed?"alt":"");button.disabled=!ready||claimed;button.textContent=claimed?"已领取":ready?"领取 🪙"+task.reward:"🪙"+task.reward;
     button.addEventListener("click",()=>claimDailyTask(task.id));action.appendChild(button);card.append(info,action);dailyTaskList.appendChild(card);
   });
+}
+function dailyChallengeQuestions(){
+  const data=dailyFunData();
+  const all=STAGES.flatMap(stage=>stage.questions.map(q=>({...q,stageName:stage.name,stageImage:stage.image||""})));
+  const byKey=new Map(all.map(q=>[wrongQuestionKey(q,q.stageName),q]));
+  let selected=Array.isArray(data.challengeKeys)?data.challengeKeys.map(key=>byKey.get(key)).filter(Boolean):[];
+  if(selected.length!==5){
+    let seed=Number(data.date.replaceAll("-",""))||1;
+    const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+    const shuffled=[...all];
+    for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}
+    selected=shuffled.slice(0,Math.min(5,shuffled.length));
+    data.challengeKeys=selected.map(q=>wrongQuestionKey(q,q.stageName));
+    save();
+  }
+  return selected;
+}
+function startDailyChallenge(){
+  const questions=dailyChallengeQuestions();
+  if(!questions.length){alert("题库中暂时没有可用题目。");return}
+  dailyChallengeMode=true;wrongReviewMode=false;practiceMode=true;
+  current={n:"",name:"每日挑战",clue:"十五景混合题库",repair:"完成5道混合复习题",image:""};
+  pool=questions.map(shuffleQuestion);
+  idx=0;stageAnswered=0;stageScore=0;stageCoins=0;stageCorrect=0;stageCombo=0;stageBestCombo=0;
+  quizModal.classList.add("show");showQuestion();
 }
 const TREASURE_ICONS=["💎","🎁","🏮","📜","🌸","⭐"];
 const TREASURE_POSITIONS=[[18,57],[49,45],[82,62],[31,34],[69,76],[55,68]];
@@ -1785,6 +1812,7 @@ function renderStats(){
 function openStage(s,isPractice=false){
   practiceMode=!!isPractice;
   wrongReviewMode=false;
+  dailyChallengeMode=false;
   current=s;
   state.stageRecords=state.stageRecords||{};
   const savedRound=!practiceMode ? state.stageRecords.__activeRound : null;
@@ -1825,17 +1853,18 @@ function persistActiveRound(nextIndex){
 function showQuestion(){
   answered=false;nextBtn.classList.add("hidden");
   const q=pool[idx];
-  stageTitle.textContent=wrongReviewMode?"📕 错题重练":current.n+". "+current.name;
-  const displayStage=wrongReviewMode?(STAGES.find(s=>s.name===q.stageName)||current):current;
+  stageTitle.textContent=dailyChallengeMode?"🎯 每日挑战":wrongReviewMode?"📕 错题重练":current.n+". "+current.name;
+  const mixedMode=wrongReviewMode||dailyChallengeMode;
+  const displayStage=mixedMode?(STAGES.find(s=>s.name===q.stageName)||current):current;
   if(document.getElementById("stageSceneImage")){
     stageSceneImage.src=displayStage.image||"";
     stageSceneImage.alt=displayStage.name+"景点插图";
     stageSceneImage.style.display=displayStage.image?"block":"none";
   }
-  stagePerson.textContent=wrongReviewMode?"【不计分】 来源关卡："+(q.stageName||"未分类"):(practiceMode?"【练习模式】 ":"")+
+  stagePerson.textContent=mixedMode?"【不计正式分】 来源关卡："+(q.stageName||"未分类"):(practiceMode?"【练习模式】 ":"")+
     "人物线索："+(current.clue||"完成关卡后解锁代表人物。")+
     "｜代表人物："+personLabel(current);
-  repairText.textContent=wrongReviewMode?"答对后，这道题会自动从错题本移除。":"修复任务："+current.repair;
+  repairText.textContent=dailyChallengeMode?"每日挑战：完成5道十五景混合复习题。":wrongReviewMode?"答对后，这道题会自动从错题本移除。":"修复任务："+current.repair;
   questionText.textContent=(idx+1)+". "+q.q;
   quizBar.style.width=(idx/pool.length*100)+"%";
   feedback.textContent="请选择答案。";
@@ -1851,7 +1880,7 @@ function choose(i,b){
   answered=true;stageAnswered++;
   if(!practiceMode || SETTINGS.practiceRewards) state.answered++;
   const q=pool[idx],buttons=[...answers.querySelectorAll(".answer")];
-  if(!wrongReviewMode)markQuestionAnswered(current,q);
+  if(!wrongReviewMode&&!dailyChallengeMode)markQuestionAnswered(current,q);
   buttons[q.c].classList.add("correct");
 
   if(i===q.c){
@@ -1886,7 +1915,7 @@ function choose(i,b){
     }
   }else{
     playSound(wrongSfx);
-    addWrongQuestion(q,wrongReviewMode?(q.stageName||"未分类"):current.name);
+    addWrongQuestion(q,(wrongReviewMode||dailyChallengeMode)?(q.stageName||"未分类"):current.name);
     if(!practiceMode || SETTINGS.practiceRewards){
       state.wrong++;
       state.combo=0;
@@ -1909,10 +1938,13 @@ function choose(i,b){
 }
 function finishCurrentStage(){
     if(practiceMode){
+      if(dailyChallengeMode){
+        const data=dailyFunData();data.challengeCompleted=true;data.challengeBest=Math.max(Number(data.challengeBest||0),stageCorrect);
+      }
       save();
       quizModal.classList.remove("show");
-      settlementTitle.textContent=wrongReviewMode?"错题重练完成":current.name+"练习完成";
-      settlementMessage.textContent=wrongReviewMode?"已掌握的题目已从错题本自动移除":"本次为复习练习，修复成果维持不变";
+      settlementTitle.textContent=dailyChallengeMode?"每日挑战完成":wrongReviewMode?"错题重练完成":current.name+"练习完成";
+      settlementMessage.textContent=dailyChallengeMode?"今日十五景混合复习完成":wrongReviewMode?"已掌握的题目已从错题本自动移除":"本次为复习练习，修复成果维持不变";
       settlementPerson.textContent="📖 练习不增加关卡奖励；每日任务与随机金币另行计算";
       stageScoreResult.textContent="不计分";
       stageCoinsResult.textContent="不奖励";
@@ -1980,14 +2012,14 @@ nextBtn.addEventListener("click",()=>{
   if(idx<pool.length-1){idx++;showQuestion();}
   else finishCurrentStage();
 });
-closeQuiz.addEventListener("click",()=>{quizModal.classList.remove("show");if(practiceMode){practiceMode=false;wrongReviewMode=false}});
+closeQuiz.addEventListener("click",()=>{quizModal.classList.remove("show");if(practiceMode){practiceMode=false;wrongReviewMode=false;dailyChallengeMode=false}});
 wrongBookBtn.addEventListener("click",()=>{renderWrongBook();wrongBookModal.classList.add("show")});
 closeWrongBook.addEventListener("click",()=>wrongBookModal.classList.remove("show"));
 startWrongReview.addEventListener("click",()=>{
   const list=wrongBookEntries();
   if(!list.length)return;
   wrongBookModal.classList.remove("show");
-  wrongReviewMode=true;practiceMode=true;
+  wrongReviewMode=true;dailyChallengeMode=false;practiceMode=true;
   current={n:"",name:"错题重练",clue:"",repair:"",image:""};
   pool=list.map(q=>({...q,a:[...(q.a||[])]}));
   idx=0;stageAnswered=0;stageScore=0;stageCoins=0;stageCorrect=0;stageCombo=0;stageBestCombo=0;
@@ -2008,7 +2040,7 @@ nextStageBtn.addEventListener("click",()=>{
   if(i>=0 && i<STAGES.length-1) openStage(STAGES[i+1],false);
 });
 continueMapBtn.addEventListener("click",()=>{
-  settlementModal.classList.remove("show");practiceMode=false;wrongReviewMode=false;renderWrongBook();
+  settlementModal.classList.remove("show");practiceMode=false;wrongReviewMode=false;dailyChallengeMode=false;renderWrongBook();
 });
 beforeBtn.addEventListener("click",()=>{compareMode="before";updateStageLabel();drawMap()});
 afterBtn.addEventListener("click",()=>{compareMode="current";updateStageLabel();drawMap()});
@@ -2024,6 +2056,7 @@ musicBtn.addEventListener("click",()=>{
   else{bgm.pause();musicBtn.textContent="🎵 音乐：关";}
 });
 dailyTaskBtn.addEventListener("click",()=>{renderDailyTasks();dailyTaskModal.classList.add("show")});
+dailyChallengeBtn.addEventListener("click",startDailyChallenge);
 closeDailyTask.addEventListener("click",()=>dailyTaskModal.classList.remove("show"));
 resetBtn.addEventListener("click",()=>{
   playClick();
