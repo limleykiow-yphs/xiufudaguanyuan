@@ -372,7 +372,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   </div>
   <h3>🎁 七日登录奖励</h3><div id="loginWeek" class="login-week"></div>
   <div id="dailyTaskList" class="daily-task-list"></div>
-  <div class="daily-note">正式关卡与已通关关卡练习都会计入每日任务；错题重练不计入。练习不会重复增加原有分数和金币，每日任务需点击“领取”才获得奖励。</div>
+  <div class="daily-note">正式关卡与已通关关卡练习都会计入每日任务；错题重练不计入。普通练习不会重复增加关卡分数和金币，但仍有机会获得每日随机金币奖励。</div>
  </div>
 </div>
 <div class="modal" id="shopModal">
@@ -404,7 +404,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
  <div class="panel" style="text-align:center">
   <div style="font-size:64px">📖</div>
   <h2 id="practiceTitle">此地点已经修复</h2>
-  <p>重新进入将作为练习，不增加关卡得分、金币、正确题数或连击，但会计入每日答题任务。</p>
+  <p>重新进入将作为练习，不增加关卡得分、金币、正确题数或连击，但会计入每日答题任务，并有机会触发每日随机金币奖励。</p>
   <button class="btn" id="practiceBtn">开始练习</button>
   <button class="btn alt" id="cancelPracticeBtn">取消</button>
  </div>
@@ -920,17 +920,26 @@ function renderDailyTreasures(){
 }
 function maybeTriggerRandomEvent(isCorrect){
   const daily=dailyFunData();
-  if(practiceMode||wrongReviewMode||daily.randomEvents>=3||Math.random()>.22)return;
-  const events=isCorrect?[
+  const triggerRate=practiceMode ? .35 : .22;
+  if(wrongReviewMode||daily.randomEvents>=3||Math.random()>triggerRate)return;
+  const formalEvents=isCorrect?[
     {title:"🌸 黛玉赠诗",text:"诗意相伴，额外获得15枚金币！",coins:15,score:0},
     {title:"🧑 宝玉相助",text:"灵思忽至，额外获得10分！",coins:0,score:10},
     {title:"👩 凤姐理事",text:"修缮有方，额外获得20枚金币！",coins:20,score:0},
     {title:"☁️ 湘云助兴",text:"诗兴正浓，额外获得10分与10枚金币！",coins:10,score:10},
     {title:"🌼 宝钗赠香",text:"冷香相赠，额外获得25枚金币！",coins:25,score:0}
   ]:[{title:"📖 李纨鼓励",text:"再读解析，赠你5枚鼓励金币。",coins:5,score:0}];
+  const practiceEvents=isCorrect?[
+    {title:"🌸 黛玉赠诗",text:"复习有得，额外获得15枚金币！",coins:15,score:0},
+    {title:"👩 凤姐理事",text:"温故知新，额外获得20枚金币！",coins:20,score:0},
+    {title:"🌼 宝钗赠香",text:"答题认真，额外获得25枚金币！",coins:25,score:0},
+    {title:"☁️ 湘云助兴",text:"诗兴正浓，额外获得10枚金币！",coins:10,score:0}
+  ]:[{title:"📖 李纨鼓励",text:"再读解析，赠你5枚鼓励金币。",coins:5,score:0}];
+  const events=practiceMode?practiceEvents:formalEvents;
   const event=events[Math.floor(Math.random()*events.length)];
   daily.randomEvents++;
-  state.coins+=event.coins;state.score+=event.score;stageCoins+=event.coins;stageScore+=event.score;
+  state.coins+=event.coins;state.score+=event.score;
+  if(!practiceMode){stageCoins+=event.coins;stageScore+=event.score;}
   showEventToast(event.title,event.text);
 }
 function done(){ return STAGES.filter(s=>state.completed[s.name]).length; }
@@ -1904,7 +1913,7 @@ function finishCurrentStage(){
       quizModal.classList.remove("show");
       settlementTitle.textContent=wrongReviewMode?"错题重练完成":current.name+"练习完成";
       settlementMessage.textContent=wrongReviewMode?"已掌握的题目已从错题本自动移除":"本次为复习练习，修复成果维持不变";
-      settlementPerson.textContent="📖 本次练习不计入分数、金币或正式奖励";
+      settlementPerson.textContent="📖 练习不增加关卡奖励；每日任务与随机金币另行计算";
       stageScoreResult.textContent="不计分";
       stageCoinsResult.textContent="不奖励";
       stageCorrectResult.textContent=stageCorrect+" / "+pool.length;
