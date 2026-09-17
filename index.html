@@ -372,7 +372,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   </div>
   <h3>🎁 七日登录奖励</h3><div id="loginWeek" class="login-week"></div>
   <div id="dailyTaskList" class="daily-task-list"></div>
-  <div class="daily-note">正式关卡答题才计入每日任务；练习及错题重练不计入。每日任务需点击“领取”才获得金币。</div>
+  <div class="daily-note">正式关卡与已通关关卡练习都会计入每日任务；错题重练不计入。练习不会重复增加原有分数和金币，每日任务需点击“领取”才获得奖励。</div>
  </div>
 </div>
 <div class="modal" id="shopModal">
@@ -404,7 +404,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
  <div class="panel" style="text-align:center">
   <div style="font-size:64px">📖</div>
   <h2 id="practiceTitle">此地点已经修复</h2>
-  <p>重新进入将作为练习，不增加得分、金币、正确题数或连击。</p>
+  <p>重新进入将作为练习，不增加关卡得分、金币、正确题数或连击，但会计入每日答题任务。</p>
   <button class="btn" id="practiceBtn">开始练习</button>
   <button class="btn alt" id="cancelPracticeBtn">取消</button>
  </div>
@@ -828,7 +828,7 @@ function dailyFunData(){
   state.stageRecords.__dailyFun=data;return data;
 }
 function recordDailyAnswer(isCorrect){
-  if(practiceMode||wrongReviewMode)return;
+  if(wrongReviewMode)return;
   const data=dailyFunData();data.answer++;if(isCorrect)data.correct++;
 }
 function syncDailyTreasureProgress(){
