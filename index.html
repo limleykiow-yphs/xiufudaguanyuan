@@ -128,6 +128,8 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 @keyframes treasurePulse{from{transform:translate(-50%,-50%) scale(.92)}to{transform:translate(-50%,-50%) scale(1.12);filter:drop-shadow(0 0 9px #ffe55c)}}
 .event-toast{position:fixed;left:50%;top:24%;z-index:650;transform:translate(-50%,-20px) scale(.95);opacity:0;pointer-events:none;background:linear-gradient(180deg,#fffbe7,#ffe8a8);border:4px double #c99538;border-radius:18px;padding:14px 22px;text-align:center;color:#82382d;font-weight:900;box-shadow:0 14px 40px #0004;transition:.3s;max-width:min(460px,88vw)}
 .event-toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+.daily-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.daily-summary-box{background:#fff6dc;border:1px solid #d8bd94;border-radius:13px;padding:11px;text-align:center}.daily-summary-box b{display:block;color:#8d3d31;font-size:20px;margin-top:4px}.daily-task-list{display:grid;gap:10px;margin-top:12px}.daily-task{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:#fffaf0;border:2px solid #dbc39d;border-radius:14px;padding:13px}.daily-task.completed{border-color:#77a45c;background:#f4fae9}.daily-task-title{font-weight:900;color:#8d3d31;font-size:17px}.daily-task-desc{font-size:14px;color:#6f5543;margin:3px 0 7px}.daily-progress{height:9px;border-radius:999px;background:#eadbc4;overflow:hidden}.daily-progress span{display:block;height:100%;background:linear-gradient(90deg,#cf8734,#efc451);border-radius:999px}.daily-task.completed .daily-progress span{background:#73a557}.daily-task-reward{white-space:nowrap;font-weight:900;color:#9b5a19}.login-week{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:12px}.login-day{border:1px solid #d8bd94;border-radius:11px;background:#fff;padding:9px 4px;text-align:center;font-size:12px}.login-day.active{background:#fff0b9;border:2px solid #c99132}.login-day.claimed{background:#eef7e2;border-color:#78a35c}.login-day b{display:block;font-size:20px;margin:4px 0}.daily-note{margin-top:12px;background:#fff3cc;border-radius:11px;padding:10px;color:#754c31;font-weight:800}
+@media(max-width:620px){.daily-summary{grid-template-columns:1fr}.daily-task{grid-template-columns:1fr}.login-week{grid-template-columns:repeat(4,1fr)}}
 
 /* ===== 成就徽章系统 ===== */
 .achievement-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
@@ -242,8 +244,8 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">❌ 错误 <span id="wrongCount">0</span></span>
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
       <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
-      <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill" id="treasureStatus">🎁 今日寻宝 <span id="treasureCount">0</span>/3</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
-      <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
+      <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill" id="treasureStatus">🎁 每日园中寻宝 <span id="treasureCount">0</span>/3</span><span class="pill" id="loginStreakPill">🔥 连续登录 <span id="loginStreakCount">0</span>天</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
+      <button class="btn" id="dailyTaskBtn">📅 每日任务 <span id="dailyTaskCount">0/3</span></button><button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
 
@@ -262,7 +264,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 </div>
 <div id="nextStageToast" class="next-stage-toast"></div><div id="repairTitleToast" class="repair-title-toast"></div>
 <canvas id="mapCanvas" width="1536" height="1024" aria-label="大观园十五关互动地图"></canvas>
-<div id="treasureLayer" class="treasure-layer" aria-label="今日园中寻宝"></div>
+<div id="treasureLayer" class="treasure-layer" aria-label="每日园中寻宝"></div>
   </div>
   <div id="mapRepairStatus" class="note hidden" style="text-align:center;font-size:18px;font-weight:bold"></div><div class="progress" style="margin-top:10px"><div id="overallBar" class="bar"></div></div>
   <section class="collection-wrap">
@@ -360,6 +362,19 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 </div>
 <div id="achievementToast" class="achievement-toast" role="status" aria-live="polite"></div>
 <div id="eventToast" class="event-toast" role="status" aria-live="polite"></div>
+<div class="modal" id="dailyTaskModal">
+ <div class="panel">
+  <div class="top"><div><h2 style="margin-bottom:4px">📅 今日复园任务</h2><div class="badge" id="dailyDateLabel"></div></div><button class="btn alt" id="closeDailyTask">关闭</button></div>
+  <div class="daily-summary">
+   <div class="daily-summary-box">连续登录<b id="dailyLoginStreak">0 天</b></div>
+   <div class="daily-summary-box">今日任务<b id="dailyCompletedSummary">0 / 3</b></div>
+   <div class="daily-summary-box">随机奖励<b id="dailyEventSummary">0 / 3</b></div>
+  </div>
+  <h3>🎁 七日登录奖励</h3><div id="loginWeek" class="login-week"></div>
+  <div id="dailyTaskList" class="daily-task-list"></div>
+  <div class="daily-note">正式关卡答题才计入每日任务；练习及错题重练不计入。每日任务需点击“领取”才获得金币。</div>
+ </div>
+</div>
 <div class="modal" id="shopModal">
  <div class="panel">
   <div class="top"><div><h2 style="margin-bottom:5px">🛍️ 大观园金币商店</h2><div class="shop-balance">我的金币：🪙 <span id="shopBalance">0</span></div></div><button class="btn alt" id="closeShop">关闭</button></div>
@@ -794,6 +809,80 @@ function renderWrongBook(){
 function localDayKey(){
   const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 }
+function localDayNumber(key){
+  const parts=String(key||"").split("-").map(Number);
+  return parts.length===3?Math.floor(new Date(parts[0],parts[1]-1,parts[2],12).getTime()/86400000):0;
+}
+const DAILY_LOGIN_REWARDS=[20,30,40,50,60,80,100];
+const DAILY_TASKS=[
+  {id:"answer",icon:"📝",title:"红楼小试",desc:"完成5道正式关卡题目",target:5,reward:30},
+  {id:"correct",icon:"✅",title:"慧心识题",desc:"正式关卡答对3道题目",target:3,reward:40},
+  {id:"treasure",icon:"🎁",title:"每日园中寻宝",desc:"找到2个园中宝物",target:2,reward:50}
+];
+function dailyFunData(){
+  state.stageRecords=state.stageRecords||{};
+  const today=localDayKey();let data=state.stageRecords.__dailyFun;
+  if(!data||data.date!==today)data={date:today,answer:0,correct:0,treasure:0,randomEvents:0,claimed:[]};
+  data.answer=Number(data.answer||0);data.correct=Number(data.correct||0);data.treasure=Number(data.treasure||0);data.randomEvents=Number(data.randomEvents||0);
+  if(!Array.isArray(data.claimed))data.claimed=[];
+  state.stageRecords.__dailyFun=data;return data;
+}
+function recordDailyAnswer(isCorrect){
+  if(practiceMode||wrongReviewMode)return;
+  const data=dailyFunData();data.answer++;if(isCorrect)data.correct++;
+}
+function syncDailyTreasureProgress(){
+  const data=dailyFunData(),treasure=dailyTreasureData();
+  data.treasure=Math.max(data.treasure,treasure.found.length);
+}
+function loginRewardData(){
+  state.stageRecords=state.stageRecords||{};
+  const data=state.stageRecords.__loginReward||{lastDate:"",streak:0};
+  data.streak=Number(data.streak||0);state.stageRecords.__loginReward=data;return data;
+}
+function processDailyLoginReward(){
+  if(!playerProfile)return false;
+  const today=localDayKey(),data=loginRewardData();
+  if(data.lastDate===today)return false;
+  const gap=localDayNumber(today)-localDayNumber(data.lastDate);
+  data.streak=gap===1?data.streak+1:1;
+  data.lastDate=today;
+  const reward=DAILY_LOGIN_REWARDS[(data.streak-1)%DAILY_LOGIN_REWARDS.length];
+  data.lastReward=reward;state.coins+=reward;save();
+  setTimeout(()=>{showEventToast("🔥 连续登录第"+data.streak+"天","今日登录奖励："+reward+"枚金币！");showReward("+"+reward+" 🪙");playSound(correctSfx)},500);
+  return true;
+}
+function claimDailyTask(id){
+  const task=DAILY_TASKS.find(item=>item.id===id),data=dailyFunData();
+  if(!task||data.claimed.includes(id)||Number(data[id]||0)<task.target)return;
+  data.claimed.push(id);state.coins+=task.reward;save();renderStats();playSound(correctSfx);
+  showEventToast("✅ 每日任务完成",task.title+"：获得"+task.reward+"枚金币！");showReward("+"+task.reward+" 🪙");
+}
+function renderDailyTasks(){
+  if(!document.getElementById("dailyTaskList"))return;
+  syncDailyTreasureProgress();
+  const data=dailyFunData(),login=loginRewardData(),cycleDay=((Math.max(1,login.streak)-1)%7)+1;
+  dailyDateLabel.textContent=data.date;dailyLoginStreak.textContent=login.streak+" 天";
+  loginStreakCount.textContent=login.streak;
+  const completed=DAILY_TASKS.filter(task=>Number(data[task.id]||0)>=task.target).length;
+  dailyTaskCount.textContent=completed+"/"+DAILY_TASKS.length;dailyCompletedSummary.textContent=completed+" / "+DAILY_TASKS.length;
+  dailyEventSummary.textContent=Math.min(3,data.randomEvents)+" / 3";
+  loginWeek.innerHTML="";
+  DAILY_LOGIN_REWARDS.forEach((reward,index)=>{
+    const day=index+1,box=document.createElement("div");
+    box.className="login-day"+(day<cycleDay?" claimed":"")+(day===cycleDay?" active claimed":"");
+    box.innerHTML="第"+day+"天<b>🪙"+reward+"</b>"+(day===cycleDay?"今日":"");loginWeek.appendChild(box);
+  });
+  dailyTaskList.innerHTML="";
+  DAILY_TASKS.forEach(task=>{
+    const value=Math.min(task.target,Number(data[task.id]||0)),ready=value>=task.target,claimed=data.claimed.includes(task.id);
+    const card=document.createElement("div");card.className="daily-task"+(ready?" completed":"");
+    const info=document.createElement("div");info.innerHTML='<div class="daily-task-title">'+task.icon+' '+task.title+'</div><div class="daily-task-desc">'+task.desc+'（'+value+'/'+task.target+'）</div><div class="daily-progress"><span style="width:'+(value/task.target*100)+'%"></span></div>';
+    const action=document.createElement("div");action.className="daily-task-reward";
+    const button=document.createElement("button");button.className="btn "+(claimed?"alt":"");button.disabled=!ready||claimed;button.textContent=claimed?"已领取":ready?"领取 🪙"+task.reward:"🪙"+task.reward;
+    button.addEventListener("click",()=>claimDailyTask(task.id));action.appendChild(button);card.append(info,action);dailyTaskList.appendChild(card);
+  });
+}
 const TREASURE_ICONS=["💎","🎁","🏮","📜","🌸","⭐"];
 const TREASURE_POSITIONS=[[18,57],[49,45],[82,62],[31,34],[69,76],[55,68]];
 function dailyTreasureData(){
@@ -818,11 +907,11 @@ function renderDailyTreasures(){
     const pos=TREASURE_POSITIONS[(seed+i*2)%TREASURE_POSITIONS.length];
     const button=document.createElement("button");button.type="button";button.className="treasure-marker";
     button.textContent=TREASURE_ICONS[(seed+i)%TREASURE_ICONS.length];button.style.left=pos[0]+"%";button.style.top=pos[1]+"%";
-    button.title="点击寻找今日宝物";button.setAttribute("aria-label","今日宝物 "+(i+1));
+    button.title="点击寻找园中宝物";button.setAttribute("aria-label","每日园中宝物 "+(i+1));
     button.addEventListener("click",event=>{
       event.preventDefault();event.stopPropagation();
       const currentData=dailyTreasureData();if(currentData.found.includes(id))return;
-      currentData.found.push(id);state.coins+=30;save();renderStats();playSound(correctSfx);
+      currentData.found.push(id);state.coins+=30;syncDailyTreasureProgress();save();renderStats();playSound(correctSfx);
       showEventToast("🎁 寻宝成功","发现园中宝物，获得30枚金币！");showReward("+30 🪙");
     });
     treasureLayer.appendChild(button);
@@ -830,13 +919,17 @@ function renderDailyTreasures(){
   if(document.getElementById("treasureCount"))treasureCount.textContent=data.found.length;
 }
 function maybeTriggerRandomEvent(isCorrect){
-  if(practiceMode||wrongReviewMode||Math.random()>.22)return;
+  const daily=dailyFunData();
+  if(practiceMode||wrongReviewMode||daily.randomEvents>=3||Math.random()>.22)return;
   const events=isCorrect?[
     {title:"🌸 黛玉赠诗",text:"诗意相伴，额外获得15枚金币！",coins:15,score:0},
     {title:"🧑 宝玉相助",text:"灵思忽至，额外获得10分！",coins:0,score:10},
-    {title:"👩 凤姐理事",text:"修缮有方，额外获得20枚金币！",coins:20,score:0}
-  ]:[{title:"📖 李纨指点",text:"别灰心，阅读解析后再挑战一次。",coins:0,score:0}];
+    {title:"👩 凤姐理事",text:"修缮有方，额外获得20枚金币！",coins:20,score:0},
+    {title:"☁️ 湘云助兴",text:"诗兴正浓，额外获得10分与10枚金币！",coins:10,score:10},
+    {title:"🌼 宝钗赠香",text:"冷香相赠，额外获得25枚金币！",coins:25,score:0}
+  ]:[{title:"📖 李纨鼓励",text:"再读解析，赠你5枚鼓励金币。",coins:5,score:0}];
   const event=events[Math.floor(Math.random()*events.length)];
+  daily.randomEvents++;
   state.coins+=event.coins;state.score+=event.score;stageCoins+=event.coins;stageScore+=event.score;
   showEventToast(event.title,event.text);
 }
@@ -1673,6 +1766,7 @@ function renderStats(){
   applyShopEffects();
   renderWrongBook();
   renderDailyTreasures();
+  renderDailyTasks();
   overallBar.style.width=(d/STAGES.length*100)+"%";
   drawMap();
   renderCollection();
@@ -1794,6 +1888,7 @@ function choose(i,b){
     if(!practiceMode || SETTINGS.practiceRewards) showReward("连击中断");
   }
 
+  recordDailyAnswer(i===q.c);
   maybeTriggerRandomEvent(i===q.c);
   persistActiveRound(idx+1);
   save();
@@ -1919,11 +2014,14 @@ musicBtn.addEventListener("click",()=>{
   if(state.music){musicUnlocked=true;bgm.muted=false;bgm.play().then(()=>musicBtn.textContent="🎵 音乐：开").catch(()=>musicBtn.textContent="🎵 点击开启音乐");}
   else{bgm.pause();musicBtn.textContent="🎵 音乐：关";}
 });
+dailyTaskBtn.addEventListener("click",()=>{renderDailyTasks();dailyTaskModal.classList.add("show")});
+closeDailyTask.addEventListener("click",()=>dailyTaskModal.classList.remove("show"));
 resetBtn.addEventListener("click",()=>{
   playClick();
   if(confirm("确定清除全部进度吗？")){
     const permanentShop=getShopData();
-    state={score:0,coins:0,correct:0,wrong:0,answered:0,combo:0,bestCombo:0,completed:{},music:true,stageRecords:{__shop:permanentShop}};save();renderStats();
+    const records=state.stageRecords||{};
+    state={score:0,coins:0,correct:0,wrong:0,answered:0,combo:0,bestCombo:0,completed:{},music:true,stageRecords:{__shop:permanentShop,__loginReward:records.__loginReward,__dailyFun:records.__dailyFun,__dailyTreasure:records.__dailyTreasure}};save();renderStats();
   }
 });
 function showResult(){
@@ -2092,8 +2190,9 @@ if(playerProfile?.dbId && playerToken){
     if(r){
       state=stateFromCloud(r,state);
       localStorage.setItem(stateStorageKey(),JSON.stringify(state));
-      renderStats();drawMap();
     }
+    cloudProgressReady=true;
+    processDailyLoginReward();renderStats();drawMap();
   }).catch(e=>{
     console.warn("安全云端进度读取失败，将保留本机存档：",e);
     if(e.status===401){
@@ -2103,8 +2202,9 @@ if(playerProfile?.dbId && playerToken){
       renderPlayerEntry();
       profileError.textContent="登录已过期，请重新输入资料与 4 位 PIN。";
     }
+    processDailyLoginReward();renderStats();
   }).finally(()=>{if(playerToken)cloudProgressReady=true;});
-}else{cloudProgressReady=false;}
+}else{cloudProgressReady=false;if(playerProfile)processDailyLoginReward();}
 
 mapImage.onload=()=>{resizeCanvas();renderStats();animationLoop();};
 window.addEventListener("resize",drawMap);
