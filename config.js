@@ -1,4 +1,4 @@
-﻿const GAME_CONFIG = {
+const GAME_CONFIG = {
   "stages": [
     {
       "n": 1,
@@ -900,8 +900,8 @@
           "id": "HL-03-020"
         }
       ],
-      "x": 39.9,
-      "y": 17.1,
+      "x": 39.8,
+      "y": 17.4,
       "personDisplay": "after_completion",
       "clue": "这里花木繁盛，是一位不喜功名的公子居所。",
       "knowledgeCard": {
@@ -1206,8 +1206,8 @@
           "id": "HL-04-020"
         }
       ],
-      "x": 60.0,
-      "y": 16.6,
+      "x": 59.9,
+      "y": 16.7,
       "personDisplay": "after_completion",
       "clue": "这里遍植翠竹，主人擅长诗词，性情敏感细腻。",
       "knowledgeCard": {
@@ -1512,8 +1512,8 @@
           "id": "HL-05-020"
         }
       ],
-      "x": 80.0,
-      "y": 16.3,
+      "x": 79.8,
+      "y": 16.8,
       "personDisplay": "after_completion",
       "clue": "这里香草藤蔓清雅，主人端庄稳重、处世周到。",
       "knowledgeCard": {
@@ -1818,8 +1818,8 @@
           "id": "HL-06-020"
         }
       ],
-      "x": 88.5,
-      "y": 35.0,
+      "x": 88,
+      "y": 34.5,
       "personDisplay": "after_completion",
       "clue": "这里开阔雅致，主人善于管理，也是诗社发起者。",
       "knowledgeCard": {
@@ -2124,7 +2124,7 @@
           "id": "HL-07-020"
         }
       ],
-      "x": 43.2,
+      "x": 43.6,
       "y": 36.1,
       "personDisplay": "after_completion",
       "clue": "这里充满田园气息，主人主持诗社活动。",
@@ -2430,8 +2430,8 @@
           "id": "HL-08-020"
         }
       ],
-      "x": 12.7,
-      "y": 43.2,
+      "x": 12.8,
+      "y": 43.4,
       "personDisplay": "after_completion",
       "clue": "这里临水赏荷，与一位爽朗豪迈的少女关系密切。",
       "knowledgeCard": {
@@ -2736,8 +2736,8 @@
           "id": "HL-09-020"
         }
       ],
-      "x": 34.7,
-      "y": 50.0,
+      "x": 34.9,
+      "y": 52.2,
       "personDisplay": "after_completion",
       "clue": "这里地势较高，适合中秋登高赏月。",
       "knowledgeCard": {
@@ -3042,8 +3042,8 @@
           "id": "HL-10-020"
         }
       ],
-      "x": 59.0,
-      "y": 52.1,
+      "x": 59.1,
+      "y": 55.4,
       "personDisplay": "after_completion",
       "clue": "这里适合月夜联诗，氛围清冷幽静。",
       "knowledgeCard": {
@@ -3348,8 +3348,8 @@
           "id": "HL-11-020"
         }
       ],
-      "x": 83.4,
-      "y": 51.0,
+      "x": 83.3,
+      "y": 53.4,
       "personDisplay": "after_completion",
       "clue": "这里临水清幽，与性格温顺的贾府小姐有关。",
       "knowledgeCard": {
@@ -3654,8 +3654,8 @@
           "id": "HL-12-020"
         }
       ],
-      "x": 20.2,
-      "y": 70.7,
+      "x": 20.6,
+      "y": 71,
       "personDisplay": "after_completion",
       "clue": "这里适合品茶赏梅，主人孤高雅洁。",
       "knowledgeCard": {
@@ -3960,8 +3960,8 @@
           "id": "HL-13-020"
         }
       ],
-      "x": 36.1,
-      "y": 76.0,
+      "x": 36.2,
+      "y": 76.1,
       "personDisplay": "after_completion",
       "clue": "这里适合游园休憩，也与扑蝶情节有关。",
       "knowledgeCard": {
@@ -4266,8 +4266,8 @@
           "id": "HL-14-020"
         }
       ],
-      "x": 54.8,
-      "y": 75.2,
+      "x": 54.9,
+      "y": 74.4,
       "personDisplay": "after_completion",
       "clue": "这里与一位擅长绘画的贾府小姐有关。",
       "knowledgeCard": {
@@ -4572,8 +4572,8 @@
           "id": "HL-15-020"
         }
       ],
-      "x": 76.8,
-      "y": 76.0,
+      "x": 77.2,
+      "y": 75.8,
       "personDisplay": "after_completion",
       "clue": "这是百花盛开的最终修复地点。",
       "knowledgeCard": {
