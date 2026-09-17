@@ -122,6 +122,12 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 .wrongbook-list{display:grid;gap:9px;max-height:48vh;overflow:auto;margin:12px 0}
 .wrongbook-item{background:#fffaf0;border:1px solid #d8bd94;border-radius:12px;padding:10px 12px}
 .wrongbook-item b{color:#8d3d31}.answer-explanation{display:block;margin-top:7px;padding-top:7px;border-top:1px dashed #d8bd94;color:#624735}
+.treasure-layer{position:absolute;inset:0;z-index:12;pointer-events:none}
+.treasure-marker{position:absolute;transform:translate(-50%,-50%);border:0;background:transparent;font-size:34px;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 3px 3px #5b321f88);animation:treasurePulse 1.25s ease-in-out infinite alternate;padding:8px}
+.treasure-marker:hover{transform:translate(-50%,-50%) scale(1.18)}
+@keyframes treasurePulse{from{transform:translate(-50%,-50%) scale(.92)}to{transform:translate(-50%,-50%) scale(1.12);filter:drop-shadow(0 0 9px #ffe55c)}}
+.event-toast{position:fixed;left:50%;top:24%;z-index:650;transform:translate(-50%,-20px) scale(.95);opacity:0;pointer-events:none;background:linear-gradient(180deg,#fffbe7,#ffe8a8);border:4px double #c99538;border-radius:18px;padding:14px 22px;text-align:center;color:#82382d;font-weight:900;box-shadow:0 14px 40px #0004;transition:.3s;max-width:min(460px,88vw)}
+.event-toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
 
 /* ===== 成就徽章系统 ===== */
 .achievement-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
@@ -236,7 +242,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">❌ 错误 <span id="wrongCount">0</span></span>
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
       <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
-      <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
+      <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill" id="treasureStatus">🎁 今日寻宝 <span id="treasureCount">0</span>/3</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
       <button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
@@ -256,6 +262,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 </div>
 <div id="nextStageToast" class="next-stage-toast"></div><div id="repairTitleToast" class="repair-title-toast"></div>
 <canvas id="mapCanvas" width="1536" height="1024" aria-label="大观园十五关互动地图"></canvas>
+<div id="treasureLayer" class="treasure-layer" aria-label="今日园中寻宝"></div>
   </div>
   <div id="mapRepairStatus" class="note hidden" style="text-align:center;font-size:18px;font-weight:bold"></div><div class="progress" style="margin-top:10px"><div id="overallBar" class="bar"></div></div>
   <section class="collection-wrap">
@@ -352,6 +359,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
  </div>
 </div>
 <div id="achievementToast" class="achievement-toast" role="status" aria-live="polite"></div>
+<div id="eventToast" class="event-toast" role="status" aria-live="polite"></div>
 <div class="modal" id="shopModal">
  <div class="panel">
   <div class="top"><div><h2 style="margin-bottom:5px">🛍️ 大观园金币商店</h2><div class="shop-balance">我的金币：🪙 <span id="shopBalance">0</span></div></div><button class="btn alt" id="closeShop">关闭</button></div>
@@ -783,6 +791,55 @@ function renderWrongBook(){
   startWrongReview.disabled=list.length===0;
   startWrongReview.textContent=list.length?"开始错题重练（"+list.length+"题）":"暂无错题";
 }
+function localDayKey(){
+  const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+const TREASURE_ICONS=["💎","🪭","🏮","📜","🌸","🧧"];
+const TREASURE_POSITIONS=[[18,57],[49,45],[82,62],[31,34],[69,76],[55,68]];
+function dailyTreasureData(){
+  state.stageRecords=state.stageRecords||{};
+  const today=localDayKey();let data=state.stageRecords.__dailyTreasure;
+  if(!data||data.date!==today){data={date:today,found:[]};state.stageRecords.__dailyTreasure=data}
+  if(!Array.isArray(data.found))data.found=[];
+  return data;
+}
+function showEventToast(title,text){
+  if(!document.getElementById("eventToast"))return;
+  eventToast.innerHTML="<div style='font-size:22px'>"+title+"</div><div style='margin-top:5px'>"+text+"</div>";
+  eventToast.classList.add("show");clearTimeout(window.__eventToastTimer);
+  window.__eventToastTimer=setTimeout(()=>eventToast.classList.remove("show"),2600);
+}
+function renderDailyTreasures(){
+  if(!document.getElementById("treasureLayer"))return;
+  const data=dailyTreasureData(),seed=Number(data.date.replaceAll("-","").slice(-4))||1;
+  treasureLayer.innerHTML="";
+  for(let i=0;i<3;i++){
+    const id="treasure-"+i;if(data.found.includes(id))continue;
+    const pos=TREASURE_POSITIONS[(seed+i*2)%TREASURE_POSITIONS.length];
+    const button=document.createElement("button");button.type="button";button.className="treasure-marker";
+    button.textContent=TREASURE_ICONS[(seed+i)%TREASURE_ICONS.length];button.style.left=pos[0]+"%";button.style.top=pos[1]+"%";
+    button.title="点击寻找今日宝物";button.setAttribute("aria-label","今日宝物 "+(i+1));
+    button.addEventListener("click",event=>{
+      event.preventDefault();event.stopPropagation();
+      const currentData=dailyTreasureData();if(currentData.found.includes(id))return;
+      currentData.found.push(id);state.coins+=30;save();renderStats();playSound(correctSfx);
+      showEventToast("🎁 寻宝成功","发现园中宝物，获得30枚金币！");showReward("+30 🪙");
+    });
+    treasureLayer.appendChild(button);
+  }
+  if(document.getElementById("treasureCount"))treasureCount.textContent=data.found.length;
+}
+function maybeTriggerRandomEvent(isCorrect){
+  if(practiceMode||wrongReviewMode||Math.random()>.22)return;
+  const events=isCorrect?[
+    {title:"🌸 黛玉赠诗",text:"诗意相伴，额外获得15枚金币！",coins:15,score:0},
+    {title:"🧑 宝玉相助",text:"灵思忽至，额外获得10分！",coins:0,score:10},
+    {title:"👩 凤姐理事",text:"修缮有方，额外获得20枚金币！",coins:20,score:0}
+  ]:[{title:"📖 李纨指点",text:"别灰心，阅读解析后再挑战一次。",coins:0,score:0}];
+  const event=events[Math.floor(Math.random()*events.length)];
+  state.coins+=event.coins;state.score+=event.score;stageCoins+=event.coins;stageScore+=event.score;
+  showEventToast(event.title,event.text);
+}
 function done(){ return STAGES.filter(s=>state.completed[s.name]).length; }
 function stageStarCount(correct,answered){
   const c=Number(correct||0),a=Number(answered||0);
@@ -894,6 +951,35 @@ function renderShop(){
 }
 function unlocked(){ return Math.min(done(), STAGES.length-1); }
 function shuffle(a){ return [...a].sort(()=>Math.random()-.5); }
+function questionIdentity(q){ return String(q.id||q.q||"").trim(); }
+function questionHistory(){
+  state.stageRecords=state.stageRecords||{};
+  const history=state.stageRecords.__questionHistory;
+  if(!history||typeof history!=="object"||Array.isArray(history))state.stageRecords.__questionHistory={};
+  return state.stageRecords.__questionHistory;
+}
+function selectFreshQuestions(stage,count){
+  const history=questionHistory();
+  const validKeys=new Set(stage.questions.map(questionIdentity));
+  let seen=Array.isArray(history[stage.name])?history[stage.name].filter(key=>validKeys.has(key)):[];
+  const seenSet=new Set(seen);
+  let selected=shuffle(stage.questions.filter(q=>!seenSet.has(questionIdentity(q)))).slice(0,count);
+  if(selected.length<count){
+    history[stage.name]=[];
+    const selectedKeys=new Set(selected.map(questionIdentity));
+    const refill=shuffle(stage.questions.filter(q=>!selectedKeys.has(questionIdentity(q))));
+    selected=selected.concat(refill.slice(0,count-selected.length));
+  }else history[stage.name]=seen;
+  return selected;
+}
+function markQuestionAnswered(stage,q){
+  if(!stage||!q)return;
+  const history=questionHistory();
+  const list=Array.isArray(history[stage.name])?history[stage.name]:[];
+  const key=questionIdentity(q);
+  if(key&&!list.includes(key))list.push(key);
+  history[stage.name]=list;
+}
 function shuffleQuestion(q){
   const items=q.a.map((text,index)=>({text,correct:index===q.c}));
   const mixed=shuffle(items);
@@ -902,7 +988,10 @@ function shuffleQuestion(q){
     a:mixed.map(x=>x.text),
     c:mixed.findIndex(x=>x.correct),
     level:q.level,
-    exp:q.exp
+    exp:q.exp,
+    type:q.type,
+    id:q.id,
+    stageName:q.stageName
   };
 }
 function showReward(text){
@@ -1583,6 +1672,7 @@ function renderStats(){
   if(achievementCounter)achievementCounter.textContent=earned.length+"/"+ACHIEVEMENTS.length;
   applyShopEffects();
   renderWrongBook();
+  renderDailyTreasures();
   overallBar.style.width=(d/STAGES.length*100)+"%";
   drawMap();
   renderCollection();
@@ -1610,7 +1700,7 @@ function openStage(s,isPractice=false){
     }
   }else{
     stageAnswered=0;
-    pool=shuffle(s.questions).slice(0,Math.min(5,s.questions.length)).map(shuffleQuestion);
+    pool=selectFreshQuestions(s,Math.min(5,s.questions.length)).map(shuffleQuestion);
     idx=0;
     stageScore=0;stageCoins=0;stageCorrect=0;stageCombo=0;stageBestCombo=0;
     if(!practiceMode){
@@ -1658,6 +1748,7 @@ function choose(i,b){
   answered=true;stageAnswered++;
   if(!practiceMode || SETTINGS.practiceRewards) state.answered++;
   const q=pool[idx],buttons=[...answers.querySelectorAll(".answer")];
+  if(!wrongReviewMode)markQuestionAnswered(current,q);
   buttons[q.c].classList.add("correct");
 
   if(i===q.c){
@@ -1703,6 +1794,7 @@ function choose(i,b){
     if(!practiceMode || SETTINGS.practiceRewards) showReward("连击中断");
   }
 
+  maybeTriggerRandomEvent(i===q.c);
   persistActiveRound(idx+1);
   save();
   quizBar.style.width=((idx+1)/pool.length*100)+"%";
