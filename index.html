@@ -171,6 +171,9 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 
 /* ===== 手机界面优化 ===== */
 .mobile-stats-nav{display:none}
+#mobileMoreBtn{display:none}
+.mobile-menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.mobile-menu-grid .btn{min-height:52px;width:100%;font-size:16px}
 @media(max-width:680px){
   body{-webkit-text-size-adjust:100%}
   .game-shell{padding:4px}
@@ -189,6 +192,8 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   .mobile-stats-nav button:disabled{opacity:.35;box-shadow:none}
   .stats .pill,.stats .current-player,.stats .btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;box-sizing:border-box;font-size:13px;padding:8px 10px}
   .stats .switch-player{min-height:40px;padding:7px 8px;background:#fff7e9;border:1px solid #d8bd94;border-radius:10px;text-decoration:none}
+  #guideBtn,#poetryBtn,#personBookBtn,#achievementBtn,#shopBtn,#reportBtn,#resetBtn,#musicBtn,#switchPlayerBtn{display:none!important}
+  #mobileMoreBtn{display:inline-flex!important;background:#8d3d31;color:#fff8e7;border-color:#8d3d31}
   .compare-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:5px;-webkit-overflow-scrolling:touch}
   .compare-row>*{flex:0 0 auto;min-height:40px;box-sizing:border-box}
   .canvas-wrap{border-width:2px;border-radius:12px}
@@ -294,7 +299,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
       <span class="pill">🔥 连击 <span id="comboCount">0</span></span>
       <span class="pill">📍 完成 <span id="doneCount">0</span>/15</span>
       <span class="pill">🌟 星级 <span id="starCount">0</span>/45</span><span class="pill" id="treasureStatus">🎁 每日园中寻宝 <span id="treasureCount">0</span>/3</span><span class="pill" id="loginStreakPill">🔥 连续登录 <span id="loginStreakCount">0</span>天</span><span class="pill shop-memorial">🏵️ 大观园纪念章</span><span class="current-player" id="currentPlayerBadge"></span><button class="switch-player" id="switchPlayerBtn" type="button">切换玩家</button><button class="btn alt" id="musicBtn">🎵 音乐：开</button>
-      <button class="btn" id="dailyTaskBtn">📅 每日任务 <span id="dailyTaskCount">0/3</span></button><button class="btn" id="dailyChallengeBtn">🎯 每日挑战</button><button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
+      <button class="btn" id="dailyTaskBtn">📅 每日任务 <span id="dailyTaskCount">0/3</span></button><button class="btn" id="dailyChallengeBtn">🎯 每日挑战</button><button class="btn alt" id="wrongBookBtn">📕 错题本 <span id="wrongBookCount">0</span></button><button class="btn" id="mobileMoreBtn">☰ 更多</button><button class="btn alt" id="guideBtn">导览册</button><button class="btn alt" id="poetryBtn">诗词图鉴</button><button class="btn alt" id="personBookBtn">🎴 人物卡册 <span id="personBookCount">0/15</span></button><button class="btn alt" id="achievementBtn">🏅 成就册 <span id="achievementCount">0/6</span></button><button class="btn alt" id="shopBtn">🛍️ 金币商店</button><button class="btn alt" id="reportBtn">学习记录</button><button class="btn alt" id="resetBtn">重置</button>
     </div>
   </div>
 
@@ -423,6 +428,23 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   <div id="dailyTaskList" class="daily-task-list"></div>
   <div id="dailyChallengeStatus" class="daily-task" style="margin-top:12px"></div>
   <div class="daily-note">每日挑战每天只记录第一次正式成绩；再次练习不会覆盖成绩、重复计算任务或触发随机奖励。错题重练不计入每日任务。</div>
+ </div>
+</div>
+<div class="modal" id="mobileMoreModal">
+ <div class="panel">
+  <div class="top"><h2>☰ 更多功能</h2><button class="btn alt" id="closeMobileMore">关闭</button></div>
+  <p>选择要打开的功能：</p>
+  <div class="mobile-menu-grid">
+   <button class="btn alt mobile-menu-action" data-target="guideBtn">🗺️ 导览册</button>
+   <button class="btn alt mobile-menu-action" data-target="poetryBtn">📜 诗词图鉴</button>
+   <button class="btn alt mobile-menu-action" data-target="personBookBtn">🎴 人物卡册</button>
+   <button class="btn alt mobile-menu-action" data-target="achievementBtn">🏅 成就册</button>
+   <button class="btn alt mobile-menu-action" data-target="shopBtn">🛍️ 金币商店</button>
+   <button class="btn alt mobile-menu-action" data-target="reportBtn">📊 学习记录</button>
+   <button class="btn alt mobile-menu-action" data-target="musicBtn">🎵 音乐开关</button>
+   <button class="btn alt mobile-menu-action" data-target="switchPlayerBtn">👤 切换玩家</button>
+   <button class="btn alt mobile-menu-action" data-target="resetBtn">🔄 重置进度</button>
+  </div>
  </div>
 </div>
 <div class="modal" id="shopModal">
@@ -2168,6 +2190,20 @@ if(mobileStatsBar&&mobileStatsPrevBtn&&mobileStatsNextBtn){
   mobileStatsBar.addEventListener("scroll",updateMobileStatsNav,{passive:true});
   window.addEventListener("resize",updateMobileStatsNav);
   setTimeout(updateMobileStatsNav,100);
+}
+const mobileMoreButton=document.getElementById("mobileMoreBtn");
+const mobileMoreDialog=document.getElementById("mobileMoreModal");
+const closeMobileMoreButton=document.getElementById("closeMobileMore");
+if(mobileMoreButton&&mobileMoreDialog&&closeMobileMoreButton){
+  mobileMoreButton.addEventListener("click",()=>mobileMoreDialog.classList.add("show"));
+  closeMobileMoreButton.addEventListener("click",()=>mobileMoreDialog.classList.remove("show"));
+  mobileMoreDialog.querySelectorAll(".mobile-menu-action").forEach(button=>{
+    button.addEventListener("click",()=>{
+      const target=document.getElementById(button.dataset.target||"");
+      mobileMoreDialog.classList.remove("show");
+      if(target)target.click();
+    });
+  });
 }
 dailyTaskBtn.addEventListener("click",()=>{renderDailyTasks();dailyTaskModal.classList.add("show")});
 dailyChallengeBtn.addEventListener("click",()=>startDailyChallenge(false));
