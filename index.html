@@ -194,6 +194,12 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   .stats .switch-player{min-height:40px;padding:7px 8px;background:#fff7e9;border:1px solid #d8bd94;border-radius:10px;text-decoration:none}
   #guideBtn,#poetryBtn,#personBookBtn,#achievementBtn,#shopBtn,#reportBtn,#resetBtn,#musicBtn,#switchPlayerBtn{display:none!important}
   #mobileMoreBtn{display:inline-flex!important;background:#8d3d31;color:#fff8e7;border-color:#8d3d31}
+  #currentPlayerBadge{order:-5;cursor:pointer;border-color:#bd8a4f;background:#fff3c9}
+  #currentPlayerBadge:after{content:" · 点此切换";font-size:11px;color:#8d3d31}
+  #dailyTaskBtn{order:-4}
+  #dailyChallengeBtn{order:-3}
+  #wrongBookBtn{order:-2}
+  #mobileMoreBtn{order:-1}
   .compare-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;padding-bottom:5px;-webkit-overflow-scrolling:touch}
   .compare-row>*{flex:0 0 auto;min-height:40px;box-sizing:border-box}
   .canvas-wrap{border-width:2px;border-radius:12px}
@@ -2185,6 +2191,7 @@ function moveMobileStats(direction){
   setTimeout(updateMobileStatsNav,420);
 }
 if(mobileStatsBar&&mobileStatsPrevBtn&&mobileStatsNextBtn){
+  mobileStatsBar.scrollLeft=0;
   mobileStatsPrevBtn.addEventListener("click",()=>moveMobileStats(-1));
   mobileStatsNextBtn.addEventListener("click",()=>moveMobileStats(1));
   mobileStatsBar.addEventListener("scroll",updateMobileStatsNav,{passive:true});
@@ -2379,9 +2386,15 @@ playerProfileForm.addEventListener("submit",async e=>{
     profileError.textContent=(err.code==="PIN_INCORRECT" || /PIN 不正确/.test(err.message||""))?"这个编号已经登记，但 PIN 不正确。":"无法连接安全云端服务，请稍后再试。";
   }
 });
-switchPlayerBtn.addEventListener("click",()=>{
+function openPlayerSwitch(){
   if(confirm("要返回资料登记页面切换玩家吗？目前玩家的游戏进度会保留在这台设备。")){localStorage.removeItem(PLAYER_PROFILE_KEY);localStorage.removeItem(PLAYER_TOKEN_KEY);playerToken="";location.reload();}
-});
+}
+switchPlayerBtn.addEventListener("click",openPlayerSwitch);
+currentPlayerBadge.setAttribute("role","button");
+currentPlayerBadge.setAttribute("tabindex","0");
+currentPlayerBadge.setAttribute("title","切换玩家");
+currentPlayerBadge.addEventListener("click",openPlayerSwitch);
+currentPlayerBadge.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openPlayerSwitch();}});
 setRole("student");renderPlayerEntry();
 // 登录后再次以云端记录校准本机状态。校准完成前暂停云端写入，避免初始 0 分覆盖已有进度。
 if(playerProfile?.dbId && playerToken){
