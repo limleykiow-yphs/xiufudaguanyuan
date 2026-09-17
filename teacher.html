@@ -429,6 +429,16 @@ body.admin-authenticated #teacherLoginGate{display:none}
   <table><thead><tr><th>景点</th><th>总数</th><th>初级</th><th>中级</th><th>高级</th><th>人物</th><th>景点</th><th>情节</th><th>诗词</th><th>文学</th><th>综合</th></tr></thead><tbody id="statRows"></tbody></table>
  </div>
  <div class="section-card"><h2>自动检查结果</h2><div id="problemReport" class="status"></div></div>
+ <div class="section-card">
+  <div class="top"><div><h2>📈 学习成效统计</h2><p>根据云端学生进度，统计各班完成率、平均正确率与常错题。</p></div><div class="toolbar"><button class="btn" id="refreshLearningStatsBtn">🔄 刷新统计</button><button class="btn alt" id="exportLearningStatsBtn">⬇ 导出 Excel（CSV）</button></div></div>
+  <div class="cloud-kpis">
+   <div class="cloud-kpi">参与学生<b id="learnStudentTotal">0</b></div><div class="cloud-kpi">全园完成<b id="learnCompletedTotal">0</b></div><div class="cloud-kpi">总体正确率<b id="learnAccuracy">0%</b></div><div class="cloud-kpi">错题总数<b id="learnWrongTotal">0</b></div>
+  </div>
+  <div id="learningStatsStatus" class="status">点击“刷新统计”读取云端学习资料。</div>
+ </div>
+ <div class="section-card table-wrap"><h2>各班学习情况</h2><table><thead><tr><th>班级</th><th>参与人数</th><th>全园完成人数</th><th>完成率</th><th>已答题数</th><th>平均正确率</th><th>平均完成关卡</th></tr></thead><tbody id="classStatsRows"><tr><td colspan="7">尚未读取资料。</td></tr></tbody></table></div>
+ <div class="section-card table-wrap"><h2>15关完成情况</h2><table><thead><tr><th>关卡</th><th>完成人数</th><th>完成率</th></tr></thead><tbody id="stageCompletionRows"><tr><td colspan="3">尚未读取资料。</td></tr></tbody></table></div>
+ <div class="section-card table-wrap"><h2>常错题排行</h2><table><thead><tr><th>排名</th><th>景点</th><th>题目</th><th>答错学生数</th></tr></thead><tbody id="commonWrongRows"><tr><td colspan="4">尚未读取资料。</td></tr></tbody></table></div>
 </section>
 
 <section id="testing" class="panel-page">
@@ -984,6 +994,54 @@ function renderCloudPlayers(){
  document.getElementById('cloudCorrect').textContent=progs.reduce((a,g)=>a+(+g.correct||0),0);
  document.getElementById('cloudCompleted').textContent=all.reduce((a,x)=>a+x._completed,0);
 }
+function wrongBookItems(player){
+ const records=player?._progress?.stage_records||{};
+ return Array.isArray(records.__wrongBook)?records.__wrongBook:[];
+}
+function playerCompletedStage(player,stage,index){
+ const completed=player?._progress?.completed;
+ if(Array.isArray(completed))return !!completed[index]||completed.includes(stage.name);
+ return !!(completed&&typeof completed==='object'&&completed[stage.name]);
+}
+function learningRows(){return cloudPlayerRows.filter(x=>x.role==='student')}
+function renderLearningStatistics(){
+ const students=learningRows();
+ const totalAnswered=students.reduce((n,x)=>n+(Number(x._progress?.answered)||0),0);
+ const totalCorrect=students.reduce((n,x)=>n+(Number(x._progress?.correct)||0),0);
+ const completedAll=students.filter(x=>x._completed>=config.stages.length).length;
+ const wrongTotal=students.reduce((n,x)=>n+wrongBookItems(x).length,0);
+ const set=(id,value)=>{const el=document.getElementById(id);if(el)el.textContent=value};
+ set('learnStudentTotal',students.length);set('learnCompletedTotal',completedAll);
+ set('learnAccuracy',totalAnswered?Math.round(totalCorrect/totalAnswered*100)+'%':'0%');set('learnWrongTotal',wrongTotal);
+
+ const groups=new Map();
+ students.forEach(x=>{
+  const name=String(x.class_name||'未填写班级').trim()||'未填写班级';
+  if(!groups.has(name))groups.set(name,{name,count:0,completed:0,answered:0,correct:0,stages:0});
+  const g=groups.get(name);g.count++;g.completed+=x._completed>=config.stages.length?1:0;
+  g.answered+=Number(x._progress?.answered)||0;g.correct+=Number(x._progress?.correct)||0;g.stages+=x._completed||0;
+ });
+ const classBody=document.getElementById('classStatsRows');
+ if(classBody)classBody.innerHTML=groups.size?[...groups.values()].sort((a,b)=>a.name.localeCompare(b.name,'zh')).map(g=>`<tr><td>${esc(g.name)}</td><td>${g.count}</td><td>${g.completed}</td><td>${Math.round(g.completed/g.count*100)}%</td><td>${g.answered}</td><td>${g.answered?Math.round(g.correct/g.answered*100):0}%</td><td>${(g.stages/g.count).toFixed(1)} / ${config.stages.length}</td></tr>`).join(''):'<tr><td colspan="7">暂无学生资料。</td></tr>';
+
+ const stageBody=document.getElementById('stageCompletionRows');
+ if(stageBody)stageBody.innerHTML=config.stages.map((stage,index)=>{const count=students.filter(x=>playerCompletedStage(x,stage,index)).length;return `<tr><td>${stage.n}. ${esc(stage.name)}</td><td>${count}</td><td>${students.length?Math.round(count/students.length*100):0}%</td></tr>`}).join('');
+
+ const wrongMap=new Map();
+ students.forEach(x=>{const perStudent=new Set();wrongBookItems(x).forEach(item=>{const key=String(item.id||item.q||item.key||'').trim();if(!key||perStudent.has(key))return;perStudent.add(key);if(!wrongMap.has(key))wrongMap.set(key,{stage:item.stageName||'未分类',q:item.q||item.question||key,count:0});wrongMap.get(key).count++})});
+ const wrongRank=[...wrongMap.values()].sort((a,b)=>b.count-a.count).slice(0,20);
+ const wrongBody=document.getElementById('commonWrongRows');
+ if(wrongBody)wrongBody.innerHTML=wrongRank.length?wrongRank.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.stage)}</td><td>${esc(x.q)}</td><td>${x.count}</td></tr>`).join(''):'<tr><td colspan="4">目前没有云端错题记录。</td></tr>';
+ set('learningStatsStatus',students.length?`已统计 ${students.length} 位学生；最后刷新：${new Date().toLocaleTimeString('zh-CN',{hour12:false})}`:'尚无学生云端资料。');
+}
+function exportLearningStatistics(){
+ const students=learningRows();
+ if(!students.length)return alert('目前没有可导出的学生统计资料。');
+ const head=['姓名','班级','学号','已答题数','正确数','错误数','正确率','完成关卡','错题本数量','最后更新'];
+ const rows=students.map(x=>{const g=x._progress||{},answered=Number(g.answered)||0,correct=Number(g.correct)||0;return [x.name||'',x.class_name||'',x.external_id||'',answered,correct,Number(g.wrong)||0,answered?Math.round(correct/answered*100)+'%':'0%',x._completed+'/'+config.stages.length,wrongBookItems(x).length,formatCloudTime(x._last)]});
+ const lines=[head,...rows].map(row=>row.map(csvCell).join(','));
+ const blob=new Blob(['\ufeff'+lines.join('\n')],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='梦回大观园_教师统计_'+new Date().toISOString().slice(0,10)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+}
 async function loadCloudPlayers(){
  const st=document.getElementById('playerCloudStatus');if(st)st.textContent='正在读取 Supabase 云端资料……';
  try{
@@ -997,6 +1055,7 @@ async function loadCloudPlayers(){
    cloudPlayerRows=[];
   }
   renderCloudPlayers();
+  renderLearningStatistics();
   const progressCount=cloudPlayerRows.filter(x=>x.has_cloud_progress).length;
   if(st)st.textContent=`已读取 ${cloudPlayerRows.length} 位玩家；其中 ${progressCount} 位已有云端游戏进度。最后刷新：${new Date().toLocaleTimeString('zh-CN',{hour12:false})}`;
  }catch(e){if(st)st.textContent='读取失败：'+e.message;console.error(e)}
@@ -1018,6 +1077,8 @@ if(teacherSessionToken){
 setTimeout(()=>{
  const rb=document.getElementById('refreshPlayersBtn');if(rb)rb.onclick=loadCloudPlayers;
  const eb=document.getElementById('exportPlayersCsvBtn');if(eb)eb.onclick=exportCloudPlayersCsv;
+ const rs=document.getElementById('refreshLearningStatsBtn');if(rs)rs.onclick=loadCloudPlayers;
+ const es=document.getElementById('exportLearningStatsBtn');if(es)es.onclick=exportLearningStatistics;
  ['playerRoleFilter','playerGroupFilter','playerSearch'].forEach(id=>{const el=document.getElementById(id);if(el){el.addEventListener(id==='playerRoleFilter'?'change':'input',renderCloudPlayers)}});
  const cb=document.getElementById('clearPlayerFiltersBtn');if(cb)cb.onclick=()=>{document.getElementById('playerRoleFilter').value='';document.getElementById('playerGroupFilter').value='';document.getElementById('playerSearch').value='';renderCloudPlayers()};
 },0);
@@ -1027,7 +1088,7 @@ function showPage(id){
  document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x.dataset.page===id));
  if(id==="dashboard")renderDashboard();
  if(id==="players")loadCloudPlayers();
- if(id==="statistics")renderStatistics();
+ if(id==="statistics"){renderStatistics();loadCloudPlayers();}
  if(id==="questions")runSearch();
  if(id==="stageEditor"){loadStage();drawMap()}
  if(id==="knowledge")loadKnowledge();
