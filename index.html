@@ -1730,21 +1730,7 @@ function drawMap(){
       ctx.restore();
     }
 
-    // Clouds and soft light.
-    if(d>=5){
-      ctx.save();
-      ctx.globalAlpha=.18+ratio*.18;
-      ctx.fillStyle="#fff";
-      for(let i=0;i<5;i++){
-        const x=((Date.now()/45+i*310)% (canvas.width+240))-120;
-        const y=60+i*42;
-        ctx.beginPath();
-        ctx.ellipse(x,y,90,24,0,0,Math.PI*2);
-        ctx.ellipse(x+55,y+3,70,20,0,0,Math.PI*2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
+    // 全园修复完成后保持地图清晰，不再叠加循环移动的白色柔光圈。
 
     // Completed-location repair effects.
     STAGES.forEach((s,i)=>{
