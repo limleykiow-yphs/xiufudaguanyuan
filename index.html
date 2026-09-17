@@ -179,8 +179,9 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 .map-zoom-viewport{position:relative;width:100%;height:min(72vh,760px);overflow:hidden;background:#eadbc4;border:2px solid #c99b55;border-radius:14px;touch-action:none;cursor:grab}
 .map-zoom-viewport.dragging{cursor:grabbing}
 #zoomMapImage{display:block;width:100%;height:auto;max-width:none;transform-origin:0 0;user-select:none;-webkit-user-drag:none;will-change:transform}
-#zoomStageLabel{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:3;background:rgba(126,55,42,.94);color:#fff8dc;border:1px solid #e1b96c;border-radius:999px;padding:7px 14px;font-weight:900;opacity:0;transition:.2s;pointer-events:none;white-space:nowrap}
-#zoomStageLabel.show{opacity:1}
+#zoomStageLabel{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:3;background:rgba(126,55,42,.96);color:#fff8dc;border:1px solid #e1b96c;border-radius:14px;padding:8px 10px 8px 14px;font-weight:900;opacity:0;visibility:hidden;transition:.2s;display:flex;align-items:center;gap:10px;white-space:nowrap}
+#zoomStageLabel.show{opacity:1;visibility:visible}
+#zoomEnterStageBtn{border:0;border-radius:10px;background:#fff3c3;color:#8d3d31;padding:9px 12px;font-weight:900;cursor:pointer}
 @media(max-width:680px){
   body{-webkit-text-size-adjust:100%}
   .game-shell{padding:4px}
@@ -350,7 +351,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   <div class="map-zoom-tools"><button class="btn alt" id="resetMapZoomBtn">↺ 恢复全图</button><span>双指缩放或拖动；轻点景点可自动放大</span></div>
   <div class="map-zoom-viewport" id="mapZoomViewport">
    <img id="zoomMapImage" alt="可缩放的大观园地图">
-   <div id="zoomStageLabel"></div>
+   <div id="zoomStageLabel"><span id="zoomStageName"></span><button id="zoomEnterStageBtn" type="button">进入此关答题</button></div>
   </div>
  </div>
 </div>
@@ -1787,24 +1788,27 @@ function hitStage(pt){
   });
   return best;
 }
-canvas.addEventListener("click",e=>{
-  if(mapInputLocked)return;
+function enterStageFromMap(stage,index){
+  if(mapInputLocked||!stage)return;
   playClick();
-  const hit=hitStage(canvasPoint(e));
-  if(!hit)return;
-  const u=unlocked(),ok=!!state.completed[hit.s.name];
-  if(hit.i>u&&!ok){alert("请先完成前一关。");return;}
+  const u=unlocked(),ok=!!state.completed[stage.name];
+  if(index>u&&!ok){alert("请先完成前一关。");return;}
   if(ok){
     if(!SETTINGS.allowPractice){
       alert("此地点已经修复，请继续挑战当前开放关卡。");
       return;
     }
-    pendingPracticeStage=hit.s;
-    practiceTitle.textContent=hit.s.name+"已经修复";
+    pendingPracticeStage=stage;
+    practiceTitle.textContent=stage.name+"已经修复";
     practiceModal.classList.add("show");
     return;
   }
-  openStage(hit.s,false);
+  openStage(stage,false);
+}
+canvas.addEventListener("click",e=>{
+  const hit=hitStage(canvasPoint(e));
+  if(!hit)return;
+  enterStageFromMap(hit.s,hit.i);
 });
 
 const openMapZoomBtn=document.getElementById("openMapZoomBtn");
@@ -1814,7 +1818,10 @@ const resetMapZoomBtn=document.getElementById("resetMapZoomBtn");
 const mapZoomViewport=document.getElementById("mapZoomViewport");
 const zoomMapImage=document.getElementById("zoomMapImage");
 const zoomStageLabel=document.getElementById("zoomStageLabel");
+const zoomStageName=document.getElementById("zoomStageName");
+const zoomEnterStageBtn=document.getElementById("zoomEnterStageBtn");
 let zoomScale=1,zoomPanX=0,zoomPanY=0,zoomTap=null;
+let zoomFocusedStage=null;
 const zoomPointers=new Map();
 function clampMapZoom(){
   const vw=mapZoomViewport.clientWidth,vh=mapZoomViewport.clientHeight;
@@ -1828,15 +1835,17 @@ function applyMapZoom(){
 }
 function resetMapZoom(){
   zoomScale=1;zoomPanX=0;zoomPanY=0;
+  zoomFocusedStage=null;
   zoomStageLabel.classList.remove("show");
   applyMapZoom();
 }
 function focusZoomStage(stage){
   if(!stage||!zoomMapImage.clientWidth)return;
+  zoomFocusedStage=stage;
   zoomScale=2.7;
   zoomPanX=mapZoomViewport.clientWidth/2-(Number(stage.x)||50)/100*zoomMapImage.clientWidth*zoomScale;
   zoomPanY=mapZoomViewport.clientHeight/2-(Number(stage.y)||50)/100*zoomMapImage.clientHeight*zoomScale;
-  zoomStageLabel.textContent=(stage.icon||"📍")+" "+stage.n+". "+stage.name;
+  zoomStageName.textContent=(stage.icon||"📍")+" "+stage.n+". "+stage.name;
   zoomStageLabel.classList.add("show");
   applyMapZoom();
 }
@@ -1861,6 +1870,12 @@ function openMapZoom(){
 openMapZoomBtn.addEventListener("click",openMapZoom);
 closeMapZoomBtn.addEventListener("click",()=>mapZoomModal.classList.remove("show"));
 resetMapZoomBtn.addEventListener("click",resetMapZoom);
+zoomEnterStageBtn.addEventListener("click",event=>{
+  event.stopPropagation();
+  if(!zoomFocusedStage)return;
+  mapZoomModal.classList.remove("show");
+  enterStageFromMap(zoomFocusedStage,STAGES.indexOf(zoomFocusedStage));
+});
 zoomMapImage.addEventListener("load",()=>requestAnimationFrame(resetMapZoom));
 mapZoomViewport.addEventListener("pointerdown",event=>{
   event.preventDefault();
