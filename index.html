@@ -127,6 +127,16 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
 .wrongbook-list{display:grid;gap:9px;max-height:48vh;overflow:auto;margin:12px 0}
 .wrongbook-item{background:#fffaf0;border:1px solid #d8bd94;border-radius:12px;padding:10px 12px}
 .wrongbook-item b{color:#8d3d31}.answer-explanation{display:block;margin-top:7px;padding-top:7px;border-top:1px dashed #d8bd94;color:#624735}
+
+/* ===== 答题弹窗体验优化 ===== */
+#quizModal .quiz-panel{scroll-behavior:smooth;overscroll-behavior:contain}
+#quizModal .stage-scene-banner{max-height:190px}
+#quizModal .answer:disabled{cursor:default;opacity:.78}
+#quizModal .answer.correct:disabled,#quizModal .answer.wrong:disabled{opacity:1}
+#quizModal #feedback{scroll-margin:90px 0 82px}
+#quizModal .quiz-action-bar{position:sticky;bottom:-14px;z-index:15;margin:0 -14px -14px;padding:8px 14px 14px;background:linear-gradient(180deg,rgba(255,248,231,0),#fff8e7 28%);pointer-events:none}
+#quizModal .quiz-action-bar #nextBtn{pointer-events:auto;box-shadow:0 4px 12px rgba(94,47,37,.2)}
+#quizModal .answer-explanation{white-space:normal;line-height:1.65}
 .treasure-layer{position:absolute;inset:0;z-index:12;pointer-events:none}
 .treasure-marker{position:absolute;transform:translate(-50%,-50%);border:2px solid #f4c754;background:rgba(255,250,210,.92);border-radius:50%;font-size:31px;line-height:1;width:52px;height:52px;display:grid;place-items:center;cursor:pointer;pointer-events:auto;filter:drop-shadow(0 3px 3px #5b321f88);animation:treasurePulse 1.25s ease-in-out infinite alternate;padding:0}
 .treasure-marker:hover{transform:translate(-50%,-50%) scale(1.18)}
@@ -230,11 +240,12 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   .map-zoom-panel{height:calc(100dvh - 14px)!important}
   .map-zoom-viewport{height:calc(100dvh - 142px);border-radius:10px}
   #questionText{font-size:clamp(19px,5.2vw,24px);line-height:1.42;margin:12px 0}
-  .stage-scene-banner{max-height:135px;margin:5px 0 9px;border-radius:11px}
+  .stage-scene-banner{max-height:118px;margin:5px 0 9px;border-radius:11px}
   .answers{gap:10px!important}
   .answer{min-height:58px!important;padding:14px 15px!important;font-size:17px!important;line-height:1.4!important;text-align:left;touch-action:manipulation}
   #feedback{font-size:15px;line-height:1.5}
-  #nextBtn{width:100%;min-height:50px;font-size:17px;margin-top:10px}
+  #nextBtn{width:100%;min-height:50px;font-size:17px;margin-top:6px}
+  #quizModal .quiz-action-bar{bottom:-14px;padding-top:9px}
   .settlement-grid{grid-template-columns:repeat(2,1fr)!important;gap:7px;margin:10px 0}
   .settle-box{padding:9px 5px;font-size:13px}
   .success-seal{width:54px;height:54px;font-size:32px;border-radius:14px}
@@ -495,7 +506,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
  </div>
 </div>
 <div class="modal" id="quizModal">
- <div class="panel">
+ <div class="panel quiz-panel">
   <div class="top">
     <div><h2 id="stageTitle"></h2><p id="stagePerson"></p></div>
     <button class="btn alt" id="closeQuiz">返回地图</button>
@@ -506,7 +517,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   <h2 id="questionText"></h2>
   <div id="answers" class="answers"></div>
   <div id="feedback" class="note">请选择答案。</div>
-  <button class="btn hidden" id="nextBtn">下一题</button>
+  <div class="quiz-action-bar"><button class="btn hidden" id="nextBtn">下一题</button></div>
  </div>
 </div>
 
@@ -2201,6 +2212,10 @@ function choose(i,b){
   answered=true;stageAnswered++;
   if(!practiceMode || SETTINGS.practiceRewards) state.answered++;
   const q=pool[idx],buttons=[...answers.querySelectorAll(".answer")];
+  buttons.forEach(button=>{
+    button.disabled=true;
+    button.setAttribute("aria-disabled","true");
+  });
   if(!wrongReviewMode&&!dailyChallengeMode)markQuestionAnswered(current,q);
   buttons[q.c].classList.add("correct");
 
@@ -2256,6 +2271,10 @@ function choose(i,b){
   nextBtn.textContent=idx===pool.length-1?"完成本关":"下一题";
   renderStats();
   renderWrongBook();
+  requestAnimationFrame(()=>{
+    feedback.scrollIntoView({behavior:"smooth",block:"nearest"});
+    nextBtn.focus({preventScroll:true});
+  });
 }
 function finishCurrentStage(){
     if(practiceMode){
