@@ -2184,6 +2184,7 @@ function persistActiveRound(nextIndex){
 }
 function showQuestion(){
   answered=false;nextBtn.classList.add("hidden");
+  const quizPanel=quizModal.querySelector(".quiz-panel");
   const q=pool[idx];
   stageTitle.textContent=dailyChallengeMode?(dailyChallengePracticeOnly?"🎯 每日挑战练习":"🎯 每日挑战"):wrongReviewMode?"📕 错题重练":current.n+". "+current.name;
   const mixedMode=wrongReviewMode||dailyChallengeMode;
@@ -2205,6 +2206,9 @@ function showQuestion(){
     const b=document.createElement("button");b.className="answer";
     b.textContent=String.fromCharCode(65+i)+". "+a;
     b.addEventListener("click",()=>choose(i,b));answers.appendChild(b);
+  });
+  requestAnimationFrame(()=>{
+    if(quizPanel)quizPanel.scrollTo({top:0,behavior:"smooth"});
   });
 }
 function choose(i,b){
