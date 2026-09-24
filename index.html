@@ -270,7 +270,7 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
   <div class="profile-gate-inner">
     <div class="profile-brand"><h1>梦回大观园</h1><div class="sub">《红楼梦》寻迹复园之旅</div></div>
     <div class="profile-motto">寻红楼旧迹 · 解经典之问 · 修十五园景 · 复大观芳华</div>
-    <div class="profile-story"><strong>化身「大观园复园使」</strong><br>循红楼旧迹，访大观园景；完成答题挑战，收集修复金币，逐一唤醒园中十五处景致。</div>
+    <div class="profile-story"><strong>化身“大观园复园使”</strong><br>循红楼旧迹，访大观园景；完成答题挑战，收集修复金币，逐一唤醒园中十五处景致。</div>
     <form id="playerProfileForm" autocomplete="off">
       <div class="dual-register">
         <section id="studentPanel" class="register-panel student selected">
@@ -280,8 +280,8 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
             <div><label for="studentName">学生姓名</label><input id="studentName" maxlength="30" placeholder="请输入真实姓名"></div>
             <div><label for="studentClass">班级</label><input id="studentClass" maxlength="20" placeholder="例如：初一诚"></div>
             <div><label for="studentId">学生学号</label><input id="studentId" maxlength="30" placeholder="例如：20260XX"></div>
-            <div><label for="studentPin">设置 4 位 PIN</label><input id="studentPin" inputmode="numeric" maxlength="4" placeholder="请输入 4 位数字"></div>
-            <div><label for="studentPin2">再次输入 PIN</label><input id="studentPin2" inputmode="numeric" maxlength="4" placeholder="请再次输入 4 位数字"></div>
+            <div><label id="studentPinLabel" for="studentPin">设置 4 位 PIN</label><input id="studentPin" inputmode="numeric" maxlength="4" placeholder="请输入数字，例如：1234"></div>
+            <div id="studentPin2Row"><label for="studentPin2">再次输入 PIN</label><input id="studentPin2" inputmode="numeric" maxlength="4" placeholder="请再次输入相同的 4 位数字"></div>
           </div>
           <div class="avatar-title">选择复园使形象</div>
           <div class="avatar-pair">
@@ -297,8 +297,8 @@ box-shadow:0 8px 20px rgba(110,46,37,.22);transform:rotate(-4deg)}
             <div><label for="staffName">教职员姓名</label><input id="staffName" maxlength="30" placeholder="请输入真实姓名"></div>
             <div><label for="staffDept">部门／职务</label><input id="staffDept" maxlength="30" placeholder="例如：华文组 / 教师"></div>
             <div><label for="staffId">教职员编号</label><input id="staffId" maxlength="30" placeholder="例如：YPHS00XX"></div>
-            <div><label for="staffPin">设置 4 位 PIN</label><input id="staffPin" inputmode="numeric" maxlength="4" placeholder="请输入 4 位数字"></div>
-            <div><label for="staffPin2">再次输入 PIN</label><input id="staffPin2" inputmode="numeric" maxlength="4" placeholder="请再次输入 4 位数字"></div>
+            <div><label id="staffPinLabel" for="staffPin">设置 4 位 PIN</label><input id="staffPin" inputmode="numeric" maxlength="4" placeholder="请输入数字，例如：1234"></div>
+            <div id="staffPin2Row"><label for="staffPin2">再次输入 PIN</label><input id="staffPin2" inputmode="numeric" maxlength="4" placeholder="请再次输入相同的 4 位数字"></div>
           </div>
           <div class="avatar-title">选择复园使形象</div>
           <div class="avatar-pair">
@@ -659,7 +659,8 @@ async function cloudLoginOrRegister(p,pin){
       class_name:p.role==="student"?(p.className||""):"",
       department:p.role==="staff"?(p.department||""):"",
       avatar:p.avatar,
-      pin
+      pin,
+      confirm_pin:p.confirmPin||""
     })
   });
   const data=await readApiJson(response);
@@ -2577,6 +2578,42 @@ document.querySelectorAll('input[name="rolePick"]').forEach(r=>r.addEventListene
 document.querySelectorAll('.panel-start').forEach(btn=>btn.addEventListener('click',()=>setRole(btn.dataset.role)));
 studentPanel.addEventListener('click',e=>{if(!e.target.closest('.avatar-option')&&!e.target.closest('input'))setRole('student')});
 staffPanel.addEventListener('click',e=>{if(!e.target.closest('.avatar-option')&&!e.target.closest('input'))setRole('staff')});
+
+async function refreshPinMode(role){
+  const isStudent=role==="student";
+  const id=(isStudent?studentId:staffId).value.trim();
+  const pin=(isStudent?studentPin:staffPin).value.trim();
+  const row=isStudent?document.getElementById("studentPin2Row"):document.getElementById("staffPin2Row");
+  const label=isStudent?document.getElementById("studentPinLabel"):document.getElementById("staffPinLabel");
+  const pin2=isStudent?studentPin2:staffPin2;
+  if(!id || !/^\d{4}$/.test(pin)){
+    row.style.display="";
+    label.textContent="设置 4 位 PIN";
+    return;
+  }
+  try{
+    const base=collectProfile(role);
+    const existing=await cloudLoginOrRegister(base,pin);
+    if(existing && existing.player_id){
+      row.style.display="none";
+      pin2.value="";
+      label.textContent="输入 4 位 PIN";
+    }
+  }catch(err){
+    if(err && err.code==="PIN_INCORRECT"){
+      // 编号已登记，只是 PIN 不正确；仍属于旧玩家登录模式。
+      row.style.display="none";
+      pin2.value="";
+      label.textContent="输入 4 位 PIN";
+    }else{
+      row.style.display="";
+      label.textContent="设置 4 位 PIN";
+    }
+  }
+}
+["studentId","studentPin"].forEach(id=>document.getElementById(id)?.addEventListener("blur",()=>refreshPinMode("student")));
+["staffId","staffPin"].forEach(id=>document.getElementById(id)?.addEventListener("blur",()=>refreshPinMode("staff")));
+
 playerProfileForm.addEventListener("submit",async e=>{
   e.preventDefault();
   const role=playerProfileForm.dataset.role||document.querySelector('input[name="rolePick"]:checked')?.value||"student";
@@ -2590,7 +2627,8 @@ playerProfileForm.addEventListener("submit",async e=>{
     if(!p.name||!p.department||!p.id){profileError.textContent="请完整填写教职员姓名、部门／职务和教职员编号。";return;}
   }
   if(!/^\d{4}$/.test(pin)){profileError.textContent="PIN 必须是 4 位数字。";return;}
-  if(pin!==pin2){profileError.textContent="两次输入的 PIN 不一致。";return;}
+  // 已有账号只需输入一次 PIN；新账号由服务器要求再次输入 PIN 并核对。
+  p.confirmPin=pin2;
   profileError.textContent="正在连接云端资料……";
   try{
     p=await cloudLoginOrRegister(p,pin);
@@ -2606,7 +2644,15 @@ playerProfileForm.addEventListener("submit",async e=>{
     location.reload();
   }catch(err){
     console.error(err);
-    profileError.textContent=(err.code==="PIN_INCORRECT" || /PIN 不正确/.test(err.message||""))?"这个编号已经登记，但 PIN 不正确。":"无法连接安全云端服务，请稍后再试。";
+    if(err.code==="PIN_INCORRECT" || /PIN 不正确/.test(err.message||"")){
+      profileError.textContent="这个编号已经登记，但 PIN 不正确。";
+    }else if(err.code==="PIN_CONFIRM_REQUIRED"){
+      profileError.textContent="这是第一次注册，请再次输入 4 位 PIN。";
+    }else if(err.code==="PIN_CONFIRM_MISMATCH"){
+      profileError.textContent="两次输入的 PIN 不一致。";
+    }else{
+      profileError.textContent=err.message||"无法连接安全云端服务，请稍后再试。";
+    }
   }
 });
 function openPlayerSwitch(){
